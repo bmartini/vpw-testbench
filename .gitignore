@@ -1,0 +1,8 @@
+*.swp
+*.bak
+*.vcd
+*.fst
+
+obj_dir/
+*.so
+.mypy_cache
