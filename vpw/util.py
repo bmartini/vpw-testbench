@@ -2,7 +2,7 @@
 Verilator Python Wrapper Package
 """
 
-#import testbench as dut  # type: ignore
+import testbench as dut  # type: ignore
 
 # Maintains persistent background tasks in the form of a list of generators
 # that get incremented every clock cycle.
