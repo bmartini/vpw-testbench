@@ -3,66 +3,116 @@ AXIS Slave and Master Interface
 """
 
 from typing import Generator
+from typing import Optional
+from typing import Union
+from typing import Deque
+from typing import List
 
-class master:
-    queue = []
+from math import ceil
+from collections import deque
 
-    def __init__(self, interface: str, data_width: int):
+
+class Master:
+    queue: Deque[List[int]] = deque()
+    current: List[int] = []
+    pending: int = 0
+
+    def __init__(self, interface: str, data_width: int) -> None:
         self.interface = interface
         self.data_width = data_width
 
-    def send(self, data):
-        # Pass in a list of data to send, one element per beat. The dat is
-        # append to the queue and the queue is used as the source of data that
-        # gets passed in.
-        return
+    def __pack(self, val: int) -> List[int]:
+        if self.data_width <= 64:
+            return [val]
+        else:
+            start = ceil(self.data_width/32)-1
+            shift = [32*s for s in range(start, -1, -1)]
+            return [((val >> s) & 0xffffffff) for s in shift]
 
-    def init(self, dut):
-        self.dut = dut
+    def send(self, data: List[int]) -> None:
+        """ Pass in a list of data to send, one element per beat. """
+        self.queue.append(data)
+        self.pending += len(data)
 
-        dut.prep(f"{self.interface}data", [0])
-        dut.prep(f"{self.interface}last", [0])
-        dut.prep(f"{self.interface}valid", [0])
+    def init(self, dut) -> Generator:
+
+        # setup
+        dut.prep(f"{self.interface}_tdata", [0])
+        dut.prep(f"{self.interface}_tlast", [0])
+        dut.prep(f"{self.interface}_tvalid", [0])
         yield
 
-        for x in range(10):
-            dut.prep(f"{self.interface}data", [x + 1])
-            dut.prep(f"{self.interface}last", [x == 9])
-            dut.prep(f"{self.interface}valid", [1])
-
-            io = yield
-            while io[f"{self.interface}ready"] == 0:
-                io = yield
-
-        dut.prep(f"{self.interface}data", [0])
-        dut.prep(f"{self.interface}last", [0])
-        dut.prep(f"{self.interface}valid", [0])
-
         while True:
-            yield
+            if not self.queue:
+                dut.prep(f"{self.interface}_tdata", [0])
+                dut.prep(f"{self.interface}_tlast", [0])
+                dut.prep(f"{self.interface}_tvalid", [0])
+
+                io = yield
+            else:
+                self.current = self.queue.popleft()
+
+                for i, val in enumerate(self.current):
+                    dut.prep(f"{self.interface}_tdata", self.__pack(val))
+                    dut.prep(f"{self.interface}_tlast", [int((i+1) == len(self.current))])
+                    dut.prep(f"{self.interface}_tvalid", [1])
+
+                    io = yield
+                    while io[f"{self.interface}_tready"] == 0:
+                        io = yield
+
+                    self.pending -= 1
+
+                self.current = []
 
 
-class slave:
-    queue = []
+class Slave:
+    queue: Deque[List[int]] = deque()
+    current: List[int] = []
+    pending: int = 0
 
-    def __init__(self, interface: str, data_width: int):
+    def __init__(self, interface: str, data_width: int) -> None:
         self.interface = interface
         self.data_width = data_width
 
-    def recv(self, number):
-        print(f"{self.interface}data")
-        print(f"{self.interface}valid")
-        print(f"{self.interface}last")
-        print(f"{self.interface}ready")
+    def __unpack(self, val: Union[int, List[int]]) -> int:
+        if isinstance(val, int):
+            assert(self.data_width <= 64)
+            return val
+        else:
+            start = ceil(self.data_width/32)-1
+            shift = [32*s for s in range(start, -1, -1)]
+            number: int = 0
+            for v, s in zip(val, shift):
+                number = number | (v << s)
 
-    def init(self, dut):
-        self.dut = dut
+            return number
 
-        dut.prep(f"{self.interface}ready", [1])
-        io = yield
+    def ready(self, active: bool) -> None:
+        """ Turn on/off AXIS ready signal. """
+        self.__dut.prep(f"{self.interface}_tready", [int(active)])
+
+    def recv(self) -> Optional[List[int]]:
+        """ Returns a list of data recived, one element per beat. """
+        if not self.queue:
+            return None
+        else:
+            stream: List[int] = self.queue.popleft()
+            self.pending -= len(stream)
+            return stream
+
+    def init(self, dut) -> Generator:
+        self.__dut = dut
+
+        # setup
+        dut.prep(f"{self.interface}_tready", [0])
 
         while True:
-            if io[f"{self.interface}valid"] and io[f"{self.interface}ready"]:
-                print(io[f"{self.interface}data"])
-
             io = yield
+
+            if io[f"{self.interface}_tvalid"] and io[f"{self.interface}_tready"]:
+                self.current.append(self.__unpack(io[f"{self.interface}_tdata"]))
+                self.pending += 1
+                if io[f"{self.interface}_tlast"]:
+                    self.queue.append(list(self.current))
+                    self.current = []
