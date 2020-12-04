@@ -2,6 +2,8 @@
 Verilator Python Wrapper Package
 """
 
+from typing import List
+
 import testbench as dut  # type: ignore
 
 # Maintains persistent background tasks in the form of a list of generators
@@ -11,6 +13,10 @@ background = []
 
 def init():
     dut.init()
+
+
+def prep(port: str, value: List[int]):
+    dut.prep(port, value)
 
 
 def register(interface):
