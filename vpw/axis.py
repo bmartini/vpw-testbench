@@ -36,12 +36,6 @@ class Master:
 
     def init(self, dut) -> Generator:
 
-        # setup
-        dut.prep(f"{self.interface}_tdata", [0])
-        dut.prep(f"{self.interface}_tlast", [0])
-        dut.prep(f"{self.interface}_tvalid", [0])
-        yield
-
         while True:
             if not self.queue:
                 dut.prep(f"{self.interface}_tdata", [0])
@@ -50,7 +44,7 @@ class Master:
 
                 io = yield
             else:
-                self.current = self.queue.popleft()
+                self.current = self.queue[0]
 
                 for i, val in enumerate(self.current):
                     dut.prep(f"{self.interface}_tdata", self.__pack(val))
@@ -63,7 +57,7 @@ class Master:
 
                     self.pending -= 1
 
-                self.current = []
+                self.queue.popleft()
 
 
 class Slave:
