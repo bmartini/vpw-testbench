@@ -30,8 +30,8 @@ class Config:
         if self.data_width <= 64:
             return [val]
         else:
-            start = ceil(self.data_width/32)-1
-            shift = [32*s for s in range(start, -1, -1)]
+            start = ceil(self.data_width/32)
+            shift = [32*s for s in range(start)]
             return [((val >> s) & 0xffffffff) for s in shift]
 
     def __unpack(self, val: Union[int, List[int]]) -> int:
@@ -39,8 +39,8 @@ class Config:
             assert(self.data_width <= 64)
             return val
         else:
-            start = ceil(self.data_width/32)-1
-            shift = [32*s for s in range(start, -1, -1)]
+            start = ceil(self.data_width/32)
+            shift = [32*s for s in range(start)]
             number: int = 0
             for v, s in zip(val, shift):
                 number = number | (v << s)

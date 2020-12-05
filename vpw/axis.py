@@ -25,8 +25,8 @@ class Master:
         if self.data_width <= 64:
             return [val]
         else:
-            start = ceil(self.data_width/32)-1
-            shift = [32*s for s in range(start, -1, -1)]
+            start = ceil(self.data_width/32)
+            shift = [32*s for s in range(start)]
             return [((val >> s) & 0xffffffff) for s in shift]
 
     def send(self, data: List[int]) -> None:
@@ -80,8 +80,8 @@ class Slave:
             assert(self.data_width <= 64)
             return val
         else:
-            start = ceil(self.data_width/32)-1
-            shift = [32*s for s in range(start, -1, -1)]
+            start = ceil(self.data_width/32)
+            shift = [32*s for s in range(start)]
             number: int = 0
             for v, s in zip(val, shift):
                 number = number | (v << s)
