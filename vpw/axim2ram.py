@@ -13,16 +13,16 @@ from queue import Queue
 
 
 class Memory:
-    queue_w: "Queue[Dict[str, Any]]" = Queue()  # write data channel
-    queue_aw: "Queue[Dict[str, Any]]" = Queue(4)  # write address channel
-    queue_ar: "Queue[Dict[str, Any]]" = Queue(4)  # read address channel
-
-    ram: Dict[int, int] = {}
-
     def __init__(self, interface: str, data_width: int, addr_width: int) -> None:
         self.interface = interface
         self.data_width = data_width
         self.addr_width = addr_width
+
+        self.queue_w: "Queue[Dict[str, Any]]" = Queue()  # write data channel
+        self.queue_aw: "Queue[Dict[str, Any]]" = Queue(4)  # write address channel
+        self.queue_ar: "Queue[Dict[str, Any]]" = Queue(4)  # read address channel
+
+        self.ram: Dict[int, int] = {}
 
     def __pack(self, val: int) -> List[int]:
         if self.data_width <= 64:
@@ -77,7 +77,7 @@ class Memory:
                     beat_nb = 0
                 else:
                     beat = self.queue_w.get()
-                    self.ram[int(8 * address / self.data_width) + beat_nb - 1] = beat["wdata"]
+                    self.ram[int(8*address/self.data_width) + beat_nb - 1] = beat["wdata"]
                     last = beat["wlast"]
                     beat_nb += 1
 

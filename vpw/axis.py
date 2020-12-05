@@ -13,13 +13,13 @@ from collections import deque
 
 
 class Master:
-    queue: Deque[List[int]] = deque()
-    current: List[int] = []
-    pending: int = 0
-
     def __init__(self, interface: str, data_width: int) -> None:
         self.interface = interface
         self.data_width = data_width
+
+        self.queue: Deque[List[int]] = deque()
+        self.current: List[int] = []
+        self.pending: int = 0
 
     def __pack(self, val: int) -> List[int]:
         if self.data_width <= 64:
@@ -67,13 +67,13 @@ class Master:
 
 
 class Slave:
-    queue: Deque[List[int]] = deque()
-    current: List[int] = []
-    pending: int = 0
-
     def __init__(self, interface: str, data_width: int) -> None:
         self.interface = interface
         self.data_width = data_width
+
+        self.queue: Deque[List[int]] = deque()
+        self.current: List[int] = []
+        self.pending: int = 0
 
     def __unpack(self, val: Union[int, List[int]]) -> int:
         if isinstance(val, int):

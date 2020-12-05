@@ -14,17 +14,17 @@ from collections import deque
 
 
 class Config:
-    queue_w: Deque[int] = deque()   # write data channel
-    queue_aw: Deque[int] = deque()  # write address channel
-    queue_r: Deque[int] = deque()   # read data channel
-    queue_ar: Deque[int] = deque()  # read address channel
-
     def __init__(self, interface: str, data_width: int, addr_width: int) -> None:
         assert((data_width % 8) == 0)
         assert(addr_width <= 64)
         self.interface = interface
         self.data_width = data_width
         self.addr_width = addr_width
+
+        self.queue_w: Deque[int] = deque()   # write data channel
+        self.queue_aw: Deque[int] = deque()  # write address channel
+        self.queue_r: Deque[int] = deque()   # read data channel
+        self.queue_ar: Deque[int] = deque()  # read address channel
 
     def __pack(self, val: int) -> List[int]:
         if self.data_width <= 64:
