@@ -3,7 +3,6 @@ Simplified AXIM Master Interface driving a Memory
 """
 
 from typing import Generator
-from typing import Union
 from typing import Dict
 from typing import List
 from typing import Any
@@ -32,10 +31,9 @@ class Memory:
             shift = [32*s for s in range(start)]
             return [((val >> s) & 0xffffffff) for s in shift]
 
-    def __unpack(self, val: Union[int, List[int]]) -> int:
-        if isinstance(val, int):
-            assert(self.data_width <= 64)
-            return val
+    def __unpack(self, val: List[int]) -> int:
+        if self.data_width <= 64:
+            return val[0]
         else:
             start = ceil(self.data_width/32)
             shift = [32*s for s in range(start)]
@@ -77,7 +75,7 @@ class Memory:
                     beat_nb = 0
                 else:
                     beat = self.queue_w.get()
-                    self.ram[int(8*address/self.data_width) + beat_nb - 1] = beat["wdata"]
+                    self.ram[int(8*address/self.data_width) + beat_nb - 1] = self.__unpack(beat["wdata"])
                     last = beat["wlast"]
                     beat_nb += 1
 
@@ -116,18 +114,18 @@ class Memory:
             if io[f"{self.interface}_rready"] and io[f"{self.interface}_rvalid"]:
 
                 if beat_nb == length:
+                    beat_nb = 0
                     self.__dut.prep(f"{self.interface}_rdata", self.__pack(0))
                     self.__dut.prep(f"{self.interface}_rid", [0])
                     self.__dut.prep(f"{self.interface}_rlast", [0])
                     self.__dut.prep(f"{self.interface}_rvalid", [0])
-                    beat_nb = 0
                 else:
                     beat = self.ram[int(8 * address / self.data_width) + beat_nb]
+                    beat_nb += 1
                     self.__dut.prep(f"{self.interface}_rdata", self.__pack(beat))
                     self.__dut.prep(f"{self.interface}_rid", [read_id])
                     self.__dut.prep(f"{self.interface}_rlast", [int(length == beat_nb)])
                     self.__dut.prep(f"{self.interface}_rvalid", [1])
-                    beat_nb += 1
 
             if beat_nb == 0 and not self.queue_ar.empty():
                 beat_nb = 1
