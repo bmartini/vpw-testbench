@@ -58,7 +58,11 @@ def tick():
 
     io = dut.tick()
     for gen in background:
-        gen.send(io)
+        try:
+            gen.send(io)
+        except StopIteration:
+            background.remove(gen)
+
 
     return io
 
