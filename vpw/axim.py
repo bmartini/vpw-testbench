@@ -21,6 +21,12 @@ class Master:
         self.data_width = data_width
         self.addr_width = addr_width
 
+        # write data channel
+        self.queue_w: Deque[List[int]] = deque()
+
+        # write address channel
+        self.queue_aw: Deque[Dict[str, Any]] = deque()
+
         # read data channel, queues contained in list addressable via (A)RID
         self.queue_r: List[Deque[List[int]]] = [deque() for _ in range(16)]
 
@@ -49,6 +55,53 @@ class Master:
                 number = number | (v << s)
 
             return number
+
+    def __w(self) -> Generator:
+
+        while True:
+            if not self.queue_w:
+                self.__dut.prep(f"{self.interface}_wdata", [0])
+                self.__dut.prep(f"{self.interface}_wlast", [0])
+                self.__dut.prep(f"{self.interface}_wvalid", [0])
+                io = yield
+            else:
+                # access current burst of data to be sent
+                burst_data: List[int] = self.queue_w[0]
+                burst_nb: int = len(burst_data)
+
+                for i, data in enumerate(burst_data):
+                    self.__dut.prep(f"{self.interface}_wdata", self.__pack(data))
+                    self.__dut.prep(f"{self.interface}_wlast", [int((i+1) == burst_nb)])
+                    self.__dut.prep(f"{self.interface}_wvalid", [1])
+
+                    io = yield
+                    while io[f"{self.interface}_wready"] == 0:
+                        io = yield
+
+                self.queue_w.popleft()
+
+    def __aw(self) -> Generator:
+
+        while True:
+            if not self.queue_aw:
+                self.__dut.prep(f"{self.interface}_awaddr", [0])
+                self.__dut.prep(f"{self.interface}_awlen", [0])
+                self.__dut.prep(f"{self.interface}_awid", [0])
+                self.__dut.prep(f"{self.interface}_awvalid", [0])
+                io = yield
+            else:
+                current_aw: Dict[str, Any] = self.queue_aw[0]
+
+                self.__dut.prep(f"{self.interface}_awaddr", [current_aw["awaddr"]])
+                self.__dut.prep(f"{self.interface}_awlen", [current_aw["awlen"]])
+                self.__dut.prep(f"{self.interface}_awid", [current_aw["awid"]])
+                self.__dut.prep(f"{self.interface}_awvalid", [1])
+
+                io = yield
+                while io[f"{self.interface}_awready"] == 0:
+                    io = yield
+
+                self.queue_aw.popleft()
 
     def __r(self) -> Generator:
         burst_id: int = 0
@@ -108,6 +161,17 @@ class Master:
                 self.pending_ar[current_ar["arid"]].append(current_ar["arlen"] + 1)
                 self.queue_ar.popleft()
 
+    def send_write(self, addr: int, burst: List[int], write_id: int = 0) -> None:
+        """
+        Non-Blocking: Queue to send an addressed burst of data, the address is
+        in bytes but must be AXIM word aligned and the length of the burst must
+        also respect the 4KB boundaries as per the AXI spec.
+        """
+        assert((addr % self.data_width) == 0)
+        assert(((addr % 4096) + int(len(burst) * self.data_width / 8)) <= 4096)
+        self.queue_w.append(burst)
+        self.queue_aw.append({"awaddr": addr, "awlen": len(burst) - 1, "awid": write_id})
+
     def send_read(self, addr: int, length: int, read_id: int = 0) -> None:
         """
         Non-Blocking: Queue a burst address to send, the address is in bytes
@@ -134,14 +198,20 @@ class Master:
     def init(self, dut) -> Generator:
         self.__dut = dut
 
+        ch_w = self.__w()
+        ch_aw = self.__aw()
         ch_r = self.__r()
         ch_ar = self.__ar()
 
+        next(ch_w)
+        next(ch_aw)
         next(ch_r)
         next(ch_ar)
 
         while True:
             io = yield
 
+            ch_w.send(io)
+            ch_aw.send(io)
             ch_r.send(io)
             ch_ar.send(io)
