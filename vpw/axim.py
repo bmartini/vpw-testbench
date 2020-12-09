@@ -4,6 +4,7 @@ AXIM Master Interface
 
 from typing import Generator
 from typing import Optional
+from typing import Union
 from typing import Deque
 from typing import List
 from typing import Dict
@@ -44,9 +45,10 @@ class Master:
             shift = [32*s for s in range(start)]
             return [((val >> s) & 0xffffffff) for s in shift]
 
-    def __unpack(self, val: List[int]) -> int:
-        if self.data_width <= 64:
-            return val[0]
+    def __unpack(self, val: Union[int, List[int]]) -> int:
+        if isinstance(val, int):
+            assert(self.data_width <= 64)
+            return val
         else:
             start = ceil(self.data_width / 32)
             shift = [32*s for s in range(start)]
@@ -85,9 +87,9 @@ class Master:
     def __aw(self) -> Generator:
 
         self.__dut.prep(f"{self.interface}_awcache", [0])  # NON_CACHE_NON_BUFFER
-        self.__dut.prep(f"{self.interface}_awqos", [0])    # NOT_QOS_PARTICIPANT
-        self.__dut.prep(f"{self.interface}_awprot", [0])   # DATA_SECURE_NORMAL
-        self.__dut.prep(f"{self.interface}_awsize", [6])   # 64 BYTES PER BEAT
+        self.__dut.prep(f"{self.interface}_awqos", [0])  # NOT_QOS_PARTICIPANT
+        self.__dut.prep(f"{self.interface}_awprot", [0])  # DATA_SECURE_NORMAL
+        self.__dut.prep(f"{self.interface}_awsize", [int(self.data_width / 8)])  # BYTES PER BEAT
         self.__dut.prep(f"{self.interface}_awburst", [1])  # INCREMENTING
 
         while True:
@@ -172,31 +174,33 @@ class Master:
     def send_write(self, addr: int, burst: List[int], write_id: int = 0) -> None:
         """
         Non-Blocking: Queue to send an addressed burst of data, the address is
-        in bytes but must be AXIM word aligned and the length of the burst must
-        also respect the 4KB boundaries as per the AXI spec.
+        in bytes but must be AXIM beat aligned. The burst has one beat per
+        element and its length must respect the 4KB boundaries as per the AXI
+        spec and be less than 256 beats in length.
         """
         assert((addr % self.data_width) == 0)
         assert(((addr % 4096) + int(len(burst) * self.data_width / 8)) <= 4096)
+        assert(len(burst) <= 256)
         self.queue_w.append(burst)
         self.queue_aw.append({"awaddr": addr, "awlen": len(burst) - 1, "awid": write_id})
 
     def send_read(self, addr: int, length: int, read_id: int = 0) -> None:
         """
         Non-Blocking: Queue a burst address to send, the address is in bytes
-        but must be AXIM word aligned as must the length. The length must also
-        respect the 4KB boundaries as per the AXI spec.
+        but must be AXIM word aligned. The length must respect the 4KB
+        boundaries as per the AXI spec and be less than 256 beats in length.
         """
-        assert((addr % self.data_width) == 0)
-        assert((length % self.data_width) == 0)
-        assert(((addr % 4096) + length) <= 4096)
+        assert(((8 * addr) % self.data_width) == 0)
+        assert(((addr % 4096) + int(length * self.data_width / 8)) <= 4096)
+        assert(length <= 256)
         self.queue_ar.append({"araddr": addr,
-                              "arlen": int((8 * length / self.data_width) - 1),
+                              "arlen": length - 1,
                               "arid": read_id})
 
     def recv_read(self, read_id: int = 0) -> Optional[List[int]]:
         """
         Non-Blocking: Returns a burst of received data contained in a list, one
-        beat per list elsement.
+        beat per list element.
         """
         if not self.queue_r[read_id]:
             return None
