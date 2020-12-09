@@ -58,6 +58,8 @@ class Master:
 
     def __w(self) -> Generator:
 
+        self.__dut.prep(f"{self.interface}_wstrb", [(1 << int(self.data_width/8) - 1)])
+
         while True:
             if not self.queue_w:
                 self.__dut.prep(f"{self.interface}_wdata", [0])
@@ -81,6 +83,12 @@ class Master:
                 self.queue_w.popleft()
 
     def __aw(self) -> Generator:
+
+        self.__dut.prep(f"{self.interface}_awcache", [0])  # NON_CACHE_NON_BUFFER
+        self.__dut.prep(f"{self.interface}_awqos", [0])    # NOT_QOS_PARTICIPANT
+        self.__dut.prep(f"{self.interface}_awprot", [0])   # DATA_SECURE_NORMAL
+        self.__dut.prep(f"{self.interface}_awsize", [6])   # 64 BYTES PER BEAT
+        self.__dut.prep(f"{self.interface}_awburst", [1])  # INCREMENTING
 
         while True:
             if not self.queue_aw:
