@@ -20,10 +20,10 @@ if __name__ == '__main__':
     dn_stream = axis.Slave("dn_axis", 64)
     vpw.register(dn_stream)
 
-    axim = axim.Master("axim", 64, 16)
+    axim = axim.Master("axim", 128, 16)
     vpw.register(axim)
 
-    vpw.register(axim2ram.Memory("axim2ram", 64, 16))
+    vpw.register(axim2ram.Memory("axim2ram", 128, 16))
 
     # test AXI-Streaming interface
     data1 = [n+1 for n in range(16)]
@@ -58,11 +58,11 @@ if __name__ == '__main__':
         print(f"intermittent: {x}")
 
     # test AXI-MM interface
-    axim.send_write(0, [n+1 for n in range(256)])
+    axim.send_write(0, [n+1 for n in range(128)])
 
     vpw.idle(1000)
 
-    axim.send_read(0, 256)
+    axim.send_read(0, 128)
 
     while True:
         vpw.tick()

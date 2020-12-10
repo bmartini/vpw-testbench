@@ -39,7 +39,9 @@ void prep(const std::string port, const std::vector<uint64_t> &value) {
   } else if ("axim_awvalid" == port) {
     dut->axim_awvalid = static_cast<const uint8_t>(value[0]);
   } else if ("axim_wdata" == port) {
-    dut->axim_wdata = static_cast<const uint64_t>(value[0]);
+    for (std::size_t i = 0; i != value.size(); ++i) {
+      dut->axim_wdata[i] = static_cast<const uint32_t>(value[i]);
+    }
   } else if ("axim_wstrb" == port) {
     dut->axim_wstrb = static_cast<const uint8_t>(value[0]);
   } else if ("axim_wlast" == port) {
@@ -83,7 +85,9 @@ void prep(const std::string port, const std::vector<uint64_t> &value) {
   } else if ("axim2ram_arready" == port) {
     dut->axim2ram_arready = static_cast<const uint8_t>(value[0]);
   } else if ("axim2ram_rdata" == port) {
-    dut->axim2ram_rdata = static_cast<const uint64_t>(value[0]);
+    for (std::size_t i = 0; i != value.size(); ++i) {
+      dut->axim2ram_rdata[i] = static_cast<const uint32_t>(value[i]);
+    }
   } else if ("axim2ram_rstrb" == port) {
     dut->axim2ram_rstrb = static_cast<const uint8_t>(value[0]);
   } else if ("axim2ram_rid" == port) {
@@ -100,6 +104,26 @@ void prep(const std::string port, const std::vector<uint64_t> &value) {
 }
 
 py::dict update() {
+
+  py::list axim_wdata;
+  for (auto &item : dut->axim_wdata) {
+    axim_wdata.append(item);
+  }
+
+  py::list axim_rdata;
+  for (auto &item : dut->axim_rdata) {
+    axim_rdata.append(item);
+  }
+
+  py::list axim2ram_wdata;
+  for (auto &item : dut->axim2ram_wdata) {
+    axim2ram_wdata.append(item);
+  }
+
+  py::list axim2ram_rdata;
+  for (auto &item : dut->axim2ram_rdata) {
+    axim2ram_rdata.append(item);
+  }
 
   return py::dict (
     "rst"_a = dut->rst,
@@ -126,7 +150,7 @@ py::dict update() {
     "axim_awvalid"_a = dut->axim_awvalid,
     "axim_awready"_a = dut->axim_awready,
 
-    "axim_wdata"_a = dut->axim_wdata,
+    "axim_wdata"_a = axim_wdata,
     "axim_wstrb"_a = dut->axim_wstrb,
     "axim_wlast"_a = dut->axim_wlast,
     "axim_wvalid"_a = dut->axim_wvalid,
@@ -149,7 +173,7 @@ py::dict update() {
     "axim_arvalid"_a = dut->axim_arvalid,
     "axim_arready"_a = dut->axim_arready,
 
-    "axim_rdata"_a = dut->axim_rdata,
+    "axim_rdata"_a = axim_rdata,
     "axim_rstrb"_a = dut->axim_rstrb,
     "axim_rid"_a = dut->axim_rid,
     "axim_rresp"_a = dut->axim_rresp,
@@ -169,7 +193,7 @@ py::dict update() {
     "axim2ram_awvalid"_a = dut->axim2ram_awvalid,
     "axim2ram_awready"_a = dut->axim2ram_awready,
 
-    "axim2ram_wdata"_a = dut->axim2ram_wdata,
+    "axim2ram_wdata"_a = axim2ram_wdata,
     "axim2ram_wstrb"_a = dut->axim2ram_wstrb,
     "axim2ram_wlast"_a = dut->axim2ram_wlast,
     "axim2ram_wvalid"_a = dut->axim2ram_wvalid,
@@ -192,7 +216,7 @@ py::dict update() {
     "axim2ram_arvalid"_a = dut->axim2ram_arvalid,
     "axim2ram_arready"_a = dut->axim2ram_arready,
 
-    "axim2ram_rdata"_a = dut->axim2ram_rdata,
+    "axim2ram_rdata"_a = axim2ram_rdata,
     "axim2ram_rstrb"_a = dut->axim2ram_rstrb,
     "axim2ram_rid"_a = dut->axim2ram_rid,
     "axim2ram_rresp"_a = dut->axim2ram_rresp,

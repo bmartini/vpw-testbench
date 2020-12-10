@@ -5,7 +5,7 @@
 
 module example
   #(parameter AXIS_DWIDTH = 32,
-    parameter AXIM_DWIDTH = 64,
+    parameter AXIM_DWIDTH = 128,
     parameter AXIM_AWIDTH = 16)
    (input   wire                        clk,
     input   wire                        rst,
