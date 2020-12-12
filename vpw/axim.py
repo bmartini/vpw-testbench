@@ -227,3 +227,125 @@ class Master:
             ch_aw.send(io)
             ch_r.send(io)
             ch_ar.send(io)
+
+
+class Slave:
+    def __init__(self, interface: str, data_width: int, addr_width: int,
+                 max_in_flight: Optional[int] = None) -> None:
+
+        assert((data_width % 8) == 0)
+        assert(addr_width <= 64)
+        self.interface = interface
+        self.data_width = data_width
+        self.addr_width = addr_width
+        self.max_in_flight = max_in_flight
+
+        # write data channel
+        self.queue_w: Deque[Dict[str, Any]] = deque()
+
+        # write address channel
+        self.queue_aw: Deque[Dict[str, Any]] = deque()
+
+        # current burst being received
+        self.current_w: List[int] = []
+
+    def __pack(self, val: int) -> List[int]:
+        if self.data_width <= 64:
+            return [val]
+        else:
+            start = ceil(self.data_width / 32)
+            shift = [32*s for s in range(start)]
+            return [((val >> s) & 0xffffffff) for s in shift]
+
+    def __unpack(self, val: Union[int, List[int]]) -> int:
+        if isinstance(val, int):
+            assert(self.data_width <= 64)
+            return val
+        else:
+            start = ceil(self.data_width / 32)
+            shift = [32*s for s in range(start)]
+            number: int = 0
+            for v, s in zip(val, shift):
+                number = number | (v << s)
+
+            return number
+
+    def __w(self) -> Generator:
+        burst: Lint = 0
+        burst_cnt: int = 0
+        address: int = 0
+        length: int = 0
+        last: int = 0
+
+        # setup
+        self.__dut.prep(f"{self.interface}_wready", [1])
+
+        while True:
+            io = yield
+
+            if io[f"{self.interface}_wready"] and io[f"{self.interface}_wvalid"]:
+                self.queue_w.append({"wdata": io[f"{self.interface}_wdata"],
+                                     "wlast": io[f"{self.interface}_wlast"]})
+
+            if burst_cnt == 0 and not self.queue_aw:
+                burst_cnt = 1
+                burst_data = self.queue_aw.popleft()
+                address = int(8 * burst_data["awaddr"] / self.data_width)
+                length = burst_data["awlen"] + 1
+                self.__dut.prep(f"{self.interface}_wready", [1])
+
+            if burst_cnt > 0 and not self.queue_w:
+                if burst_cnt > length:
+                    assert(last)
+                    self.__dut.prep(f"{self.interface}_wready", [0])
+                    last = 0
+                    burst_cnt = 0
+                else:
+                    beat = self.queue_w.popleft()
+                    #self.ram[address + burst_cnt - 1] = self.__unpack(beat["wdata"])
+                    last = beat["wlast"]
+                    burst_cnt += 1
+
+    def __aw(self) -> Generator:
+
+        # setup
+        self.__dut.prep(f"{self.interface}_awready", [1])
+
+        while True:
+            io = yield
+
+            if io[f"{self.interface}_awready"] and io[f"{self.interface}_awvalid"]:
+                self.queue_aw.append({"awaddr": io[f"{self.interface}_awaddr"],
+                                      "awlen": io[f"{self.interface}_awlen"]})
+
+            if self.max_in_flight and (self.max_in_flight >= len(self.queue_aw)):
+                self.__dut.prep(f"{self.interface}_awready", [0])
+            else:
+                self.__dut.prep(f"{self.interface}_awready", [1])
+
+    def __r(self) -> Generator:
+        pass
+
+    def __ar(self) -> Generator:
+        pass
+
+    def init(self, dut) -> Generator:
+        self.__dut = dut
+
+        ch_w = self.__w()
+        ch_aw = self.__aw()
+        ch_r = self.__r()
+        ch_ar = self.__ar()
+
+        next(ch_w)
+        next(ch_aw)
+        next(ch_r)
+        next(ch_ar)
+
+        while True:
+            io = yield
+
+            ch_w.send(io)
+            ch_aw.send(io)
+            ch_r.send(io)
+            ch_ar.send(io)
