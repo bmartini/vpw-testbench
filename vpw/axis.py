@@ -61,20 +61,23 @@ class Master:
 
 
 class Slave:
-    def __init__(self, interface: str, data_width: int) -> None:
+    def __init__(self, interface: str, data_width: int, concat: int = 1) -> None:
+        assert(concat > 0)
         self.interface = interface
         self.data_width = data_width
+        self.concat = concat
 
-        self.queue: Deque[List[int]] = deque()
-        self.current: List[int] = []
-        self.pending: int = 0
+        self.__ready = 0
+        self.queue: List[Deque[List[int]]] = [deque() for _ in range(concat)]
+        self.current: List[List[int]] = [[] for _ in range(concat)]
+        self.pending: List[int] = [0] * concat
 
     def __unpack(self, val: Union[int, List[int]]) -> int:
         if isinstance(val, int):
-            assert(self.data_width <= 64)
+            assert((self.concat * self.data_width) <= 64)
             return val
         else:
-            start = ceil(self.data_width/32)
+            start = ceil(self.concat * self.data_width / 32)
             shift = [32*s for s in range(start)]
             number: int = 0
             for v, s in zip(val, shift):
@@ -82,17 +85,22 @@ class Slave:
 
             return number
 
-    def ready(self, active: bool) -> None:
+    def ready(self, active: bool, position: int = 0) -> None:
         """ Turn on/off AXIS ready signal. """
-        self.__dut.prep(f"{self.interface}_tready", [int(active)])
+        if active:
+            self.__ready = self.__ready | (1 << position)
+        else:
+            self.__ready = self.__ready & ~(1 << position)
 
-    def recv(self) -> Optional[List[int]]:
+        self.__dut.prep(f"{self.interface}_tready", [self.__ready])
+
+    def recv(self, position: int = 0) -> Optional[List[int]]:
         """ Returns a list of data recived, one element per beat. """
-        if not self.queue:
+        if not self.queue[position]:
             return None
         else:
-            stream: List[int] = self.queue.popleft()
-            self.pending -= len(stream)
+            stream: List[int] = self.queue[position].popleft()
+            self.pending[position] -= len(stream)
             return stream
 
     def init(self, dut) -> Generator:
@@ -100,13 +108,26 @@ class Slave:
 
         # setup
         dut.prep(f"{self.interface}_tready", [0])
+        mask = (1 << self.data_width) - 1
 
         while True:
             io = yield
 
-            if io[f"{self.interface}_tvalid"] and io[f"{self.interface}_tready"]:
-                self.current.append(self.__unpack(io[f"{self.interface}_tdata"]))
-                self.pending += 1
-                if io[f"{self.interface}_tlast"]:
-                    self.queue.append(list(self.current))
-                    self.current = []
+            io_data = self.__unpack(io[f"{self.interface}_tdata"])
+            io_last = io[f"{self.interface}_tlast"]
+            io_valid = io[f"{self.interface}_tvalid"]
+            io_ready = io[f"{self.interface}_tready"]
+
+            for pos in range(self.concat):
+                data = (io_data >> (pos * self.data_width)) & mask
+                last = (io_last >> pos) & 1
+                valid = (io_valid >> pos) & 1
+                ready = (io_ready >> pos) & 1
+
+                if valid and ready:
+                    self.current[pos].append(data)
+                    self.pending[pos] += 1
+
+                    if last:
+                        self.queue[pos].append(list(self.current[pos]))
+                        self.current[pos] = []

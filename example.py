@@ -49,7 +49,7 @@ if __name__ == '__main__':
 
     print("Intermittent ready on down stream receive")
     up_stream.send([n+1 for n in range(10)])
-    while len(dn_stream.queue) == 0:
+    while len(dn_stream.queue[0]) == 0:
         dn_stream.ready(bool(random.getrandbits(1)))
         vpw.tick()
 
