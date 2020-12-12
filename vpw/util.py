@@ -4,6 +4,8 @@ Verilator Python Wrapper Package
 
 from typing import List
 
+from math import ceil
+
 import testbench as dut  # type: ignore
 
 # Maintains persistent background tasks in the form of a list of generators
@@ -11,12 +13,34 @@ import testbench as dut  # type: ignore
 background = []
 
 
-def init():
-    dut.init()
+def init(trace: bool = True):
+    dut.init(trace)
 
 
 def prep(port: str, value: List[int]):
     dut.prep(port, value)
+
+
+def pack(data_width: int, val: int) -> List[int]:
+    if data_width <= 64:
+        return [val]
+    else:
+        start = ceil(data_width / 32)
+        shift = [32*s for s in range(start)]
+        return [((val >> s) & 0xffffffff) for s in shift]
+
+
+def unpack(data_width: int, val: List[int]) -> int:
+    if data_width <= 64:
+        return val[0]
+    else:
+        start = ceil(data_width / 32)
+        shift = [32*s for s in range(start)]
+        number: int = 0
+        for v, s in zip(val, shift):
+            number = number | (v << s)
+
+        return number
 
 
 def register(interface):
@@ -34,7 +58,11 @@ def tick():
 
     io = dut.tick()
     for gen in background:
-        gen.send(io)
+        try:
+            gen.send(io)
+        except StopIteration:
+            background.remove(gen)
+
 
     return io
 

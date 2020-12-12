@@ -77,7 +77,7 @@ class Memory:
                     beat_nb = 0
                 else:
                     beat = self.queue_w.get()
-                    self.ram[int(8*address/self.data_width) + beat_nb - 1] = beat["wdata"]
+                    self.ram[int(8*address/self.data_width) + beat_nb - 1] = self.__unpack(beat["wdata"])
                     last = beat["wlast"]
                     beat_nb += 1
 
@@ -116,18 +116,18 @@ class Memory:
             if io[f"{self.interface}_rready"] and io[f"{self.interface}_rvalid"]:
 
                 if beat_nb == length:
+                    beat_nb = 0
                     self.__dut.prep(f"{self.interface}_rdata", self.__pack(0))
                     self.__dut.prep(f"{self.interface}_rid", [0])
                     self.__dut.prep(f"{self.interface}_rlast", [0])
                     self.__dut.prep(f"{self.interface}_rvalid", [0])
-                    beat_nb = 0
                 else:
                     beat = self.ram[int(8 * address / self.data_width) + beat_nb]
+                    beat_nb += 1
                     self.__dut.prep(f"{self.interface}_rdata", self.__pack(beat))
                     self.__dut.prep(f"{self.interface}_rid", [read_id])
                     self.__dut.prep(f"{self.interface}_rlast", [int(length == beat_nb)])
                     self.__dut.prep(f"{self.interface}_rvalid", [1])
-                    beat_nb += 1
 
             if beat_nb == 0 and not self.queue_ar.empty():
                 beat_nb = 1
