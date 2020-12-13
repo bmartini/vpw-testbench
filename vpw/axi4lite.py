@@ -13,7 +13,7 @@ from math import ceil
 from collections import deque
 
 
-class Config:
+class Master:
     def __init__(self, interface: str, data_width: int, addr_width: int) -> None:
         assert((data_width % 8) == 0)
         assert(addr_width <= 64)

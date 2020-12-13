@@ -1,5 +1,5 @@
 """
-Simplified AXIM Master Interface driving a Memory
+Simplified AXIM (software) Slave Interface driving a Memory
 """
 
 from typing import Generator
