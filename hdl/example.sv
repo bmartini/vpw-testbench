@@ -11,16 +11,16 @@ module example
     input   wire                        rst,
 
     // AXI-Stream Slave
-    input   wire    [AXIS_DWIDTH-1:0]   up_axis_tdata,
-    input   wire                        up_axis_tlast,
-    input   wire                        up_axis_tvalid,
-    output  logic                       up_axis_tready,
+    input   wire    [2*AXIS_DWIDTH-1:0] up_axis_tdata,
+    input   wire    [1:0]               up_axis_tlast,
+    input   wire    [1:0]               up_axis_tvalid,
+    output  logic   [1:0]               up_axis_tready,
 
     // AXI-Stream Master
-    output  logic   [AXIS_DWIDTH-1:0]   dn_axis_tdata,
-    output  logic                       dn_axis_tlast,
-    output  logic                       dn_axis_tvalid,
-    input   wire                        dn_axis_tready,
+    output  logic   [2*AXIS_DWIDTH-1:0] dn_axis_tdata,
+    output  logic   [1:0]               dn_axis_tlast,
+    output  logic   [1:0]               dn_axis_tvalid,
+    input   wire    [1:0]               dn_axis_tready,
 
     // AXI-MM Slave
     input   wire    [AXIM_AWIDTH-1:0]   axim_awaddr,
@@ -113,19 +113,37 @@ module example
 
     skid_buffer #(
         .DATA_WIDTH (AXIS_DWIDTH))
-    skid_buffer_axis_ (
+    skid_buffer_axis_0_ (
         .clk        (clk),
         .rst        (rst),
 
-        .up_tdata   (up_axis_tdata),
-        .up_tlast   (up_axis_tlast),
-        .up_tvalid  (up_axis_tvalid),
-        .up_tready  (up_axis_tready),
+        .up_tdata   (up_axis_tdata  [0*AXIS_DWIDTH +: AXIS_DWIDTH]),
+        .up_tlast   (up_axis_tlast  [0]),
+        .up_tvalid  (up_axis_tvalid [0]),
+        .up_tready  (up_axis_tready [0]),
 
-        .dn_tdata   (dn_axis_tdata),
-        .dn_tlast   (dn_axis_tlast),
-        .dn_tvalid  (dn_axis_tvalid),
-        .dn_tready  (dn_axis_tready)
+        .dn_tdata   (dn_axis_tdata  [0*AXIS_DWIDTH +: AXIS_DWIDTH]),
+        .dn_tlast   (dn_axis_tlast  [0]),
+        .dn_tvalid  (dn_axis_tvalid [0]),
+        .dn_tready  (dn_axis_tready [0])
+    );
+
+
+    skid_buffer #(
+        .DATA_WIDTH (AXIS_DWIDTH))
+    skid_buffer_axis_1_ (
+        .clk        (clk),
+        .rst        (rst),
+
+        .up_tdata   (up_axis_tdata  [1*AXIS_DWIDTH +: AXIS_DWIDTH]),
+        .up_tlast   (up_axis_tlast  [1]),
+        .up_tvalid  (up_axis_tvalid [1]),
+        .up_tready  (up_axis_tready [1]),
+
+        .dn_tdata   (dn_axis_tdata  [1*AXIS_DWIDTH +: AXIS_DWIDTH]),
+        .dn_tlast   (dn_axis_tlast  [1]),
+        .dn_tvalid  (dn_axis_tvalid [1]),
+        .dn_tready  (dn_axis_tready [1])
     );
 
 
