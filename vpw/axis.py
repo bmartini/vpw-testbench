@@ -13,51 +13,86 @@ from collections import deque
 
 
 class Master:
-    def __init__(self, interface: str, data_width: int) -> None:
+    def __init__(self, interface: str, data_width: int, concat: int = 1) -> None:
+        assert(concat > 0)
         self.interface = interface
         self.data_width = data_width
+        self.concat = concat
 
-        self.queue: Deque[List[int]] = deque()
-        self.current: List[int] = []
-        self.pending: int = 0
+        self.__data = 0
+        self.__last = 0
+        self.__valid = 0
+        self.queue: List[Deque[List[int]]] = [deque() for _ in range(concat)]
+        self.current: List[List[int]] = [[] for _ in range(concat)]
+        self.pending: List[int] = [0] * concat
 
     def __pack(self, val: int) -> List[int]:
-        if self.data_width <= 64:
+        if (self.concat * self.data_width) <= 64:
             return [val]
         else:
-            start = ceil(self.data_width/32)
+            start = ceil(self.concat * self.data_width / 32)
             shift = [32*s for s in range(start)]
             return [((val >> s) & 0xffffffff) for s in shift]
 
-    def send(self, data: List[int]) -> None:
+    def send(self, data: List[int], position: int = 0) -> None:
         """ Pass in a list of data to send, one element per beat. """
-        self.queue.append(data)
-        self.pending += len(data)
+        self.queue[position].append(data)
+        self.pending[position] += len(data)
 
-    def init(self, dut) -> Generator:
+    def __section(self, position: int = 0) -> Generator:
+
+        zero_data = ~(((1 << self.data_width) - 1) << (position * self.data_width))
+        zero_flag = ~(1 << position)
 
         while True:
-            if not self.queue:
-                dut.prep(f"{self.interface}_tdata", [0])
-                dut.prep(f"{self.interface}_tlast", [0])
-                dut.prep(f"{self.interface}_tvalid", [0])
+            if not self.queue[position]:
+                self.__data = self.__data & zero_data
+                self.__last = self.__last & zero_flag
+                self.__valid = self.__valid & zero_flag
+
+                self.__dut.prep(f"{self.interface}_tdata", [self.__data])
+                self.__dut.prep(f"{self.interface}_tlast", [self.__last])
+                self.__dut.prep(f"{self.interface}_tvalid", [self.__valid])
 
                 io = yield
             else:
-                self.current = self.queue[0]
+                self.current[position] = self.queue[position][0]
 
-                for i, val in enumerate(self.current):
-                    dut.prep(f"{self.interface}_tdata", self.__pack(val))
-                    dut.prep(f"{self.interface}_tlast", [int((i+1) == len(self.current))])
-                    dut.prep(f"{self.interface}_tvalid", [1])
+                for i, val in enumerate(self.current[position], start=1):
+                    self.__data = self.__data & zero_data
+                    self.__data = self.__data | (val << (position * self.data_width))
+
+                    last = int(i == len(self.current[position]))
+                    self.__last = self.__last & zero_flag
+                    self.__last = self.__last | (last << position)
+
+                    self.__valid = self.__valid | (1 << position)
+
+                    self.__dut.prep(f"{self.interface}_tdata", self.__pack(self.__data))
+                    self.__dut.prep(f"{self.interface}_tlast", [self.__last])
+                    self.__dut.prep(f"{self.interface}_tvalid", [self.__valid])
 
                     io = yield
-                    while io[f"{self.interface}_tready"] == 0:
+                    while (io[f"{self.interface}_tready"] & ~zero_flag) == 0:
                         io = yield
 
-                    self.pending -= 1
+                    self.pending[position] -= 1
 
-                self.queue.popleft()
+                self.queue[position].popleft()
+
+    def init(self, dut) -> Generator:
+        self.__dut = dut
+        streams = []
+
+        for pos in range(self.concat):
+            streams.append(self.__section(pos))
+            next(streams[pos])
+
+        while True:
+            io = yield
+
+            for stream in streams:
+                stream.send(io)
 
 
 class Slave:
@@ -107,7 +142,7 @@ class Slave:
         self.__dut = dut
 
         # setup
-        dut.prep(f"{self.interface}_tready", [0])
+        self.__dut.prep(f"{self.interface}_tready", [0])
         mask = (1 << self.data_width) - 1
 
         while True:
