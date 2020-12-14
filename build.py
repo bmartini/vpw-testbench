@@ -2,8 +2,10 @@
 
 from typing import Dict
 
-# from parsy import regex
+from parsy import seq  # type: ignore
+from parsy import regex  # type: ignore
 from parsy import string  # type: ignore
+from parsy import ParseError  # type: ignore
 
 
 def generate_intro(name: str) -> str:
@@ -81,10 +83,10 @@ def generate_update_end() -> str:
     return "\n  );\n}"
 
 
-def create_cpp(ports: Dict[str, str]) -> str:
+def create_cpp(name: str, ports: Dict[str, str]) -> str:
     body = ''
 
-    body += generate_intro('example')
+    body += generate_intro(name)
 
     for port, width in ports.items():
         body += generate_prep_if(port, width)
@@ -108,34 +110,36 @@ def create_cpp(ports: Dict[str, str]) -> str:
     return body
 
 
-with open('obj_dir/Vexample.h', 'r') as f:
-    header = f.readlines()
+def parse_header(name) -> Dict[str, str]:
+    in8 = string('    VL_IN8(').map(lambda x: 'IN8')
+    in16 = string('    VL_IN16(').map(lambda x: 'IN16')
+    in32 = string('    VL_IN(').map(lambda x: 'IN32')
+    in64 = string('    VL_IN64(').map(lambda x: 'IN64')
+    inw = string('    VL_INW(').map(lambda x: 'INW')
 
-IN8 = string('VL_IN8(')
-IN16 = string('VL_IN16(')
-IN32 = string('VL_IN(')
-IN64 = string('VL_IN64(')
-INW = string('VL_INW(')
+    out8 = string('    VL_OUT8(').map(lambda x: 'OUT8')
+    out16 = string('    VL_OUT16(').map(lambda x: 'OUT16')
+    out32 = string('    VL_OUT(').map(lambda x: 'OUT32')
+    out64 = string('    VL_OUT64(').map(lambda x: 'OUT64')
+    outw = string('    VL_OUTW(').map(lambda x: 'OUTW')
 
-OUT8 = string('VL_OUT8(')
-OUT16 = string('VL_OUT16(')
-OUT32 = string('VL_OUT(')
-OUT64 = string('VL_OUT64(')
-OUTW = string('VL_OUTW(')
+    ports = (in8 | in16 | in32 | in64 | inw | out8 | out16
+             | out32 | out64 | outw).desc('variable width definition')
 
-#  print(IN8.parse('     VL_IN8(axim2ram_rvalid,0,0);'))
+    varname = regex('[a-zA-Z]+\w*').desc('variable name')
 
+    with open(f'obj_dir/V{name}.h', 'r') as f:
+        lines = f.readlines()
 
-portlist = {
-    "rst": "IN8",
-    "up_axis_tlast": "IN8",
-    "up_axis_tvalid": "IN8",
-    "up_axis_tready": "OUT8",
-    "dn_axis_tlast": "OUT8",
-    "dn_axis_tvalid": "OUT8",
-    "dn_axis_tready": "IN8",
-    "up_axis_tdata": "INW",
-    "dn_axis_tdata": "OUTW"}
+    portlist = {}
+    for line in lines:
+        try:
+            port_def, _ = seq(ports, varname).parse_partial(line)
+            portlist[port_def[1]] = port_def[0]
+        except ParseError:
+            pass
+
+    return portlist
 
 
-print(create_cpp(portlist))
+print(create_cpp('example', parse_header('example')))
