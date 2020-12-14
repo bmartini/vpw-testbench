@@ -8,6 +8,7 @@ from parsy import string  # type: ignore
 from parsy import ParseError  # type: ignore
 
 import click
+import subprocess
 
 
 def generate_intro(name: str) -> str:
@@ -82,7 +83,7 @@ def generate_update_dict(port: str, width: str) -> str:
 
 
 def generate_update_end() -> str:
-    return "\n  );\n}"
+    return "\n  );\n}\n"
 
 
 def create_cpp(name: str, ports: Dict[str, str]) -> str:
@@ -151,6 +152,10 @@ def parse_header(name, clock) -> Dict[str, str]:
 @click.option('-c', '--clock', default='clk', help='Clock name of top module.')
 @click.option('-n', '--name', default='example', help='Name of top module.')
 def main(name, clock):
+
+    subprocess.run([f'make', f'clean']),
+    subprocess.run([f'make', f'TOP={name}', f'obj_dir/V{name}.cpp'])
+
     code = create_cpp(name, parse_header(name, clock))
 
     with open(f'{name}.cc', 'w') as f:
