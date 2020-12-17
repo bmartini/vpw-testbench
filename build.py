@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 from typing import Dict
+from typing import Tuple
 
 from parsy import seq  # type: ignore
 from parsy import regex  # type: ignore
@@ -113,7 +114,7 @@ def create_cpp(name: str, ports: Dict[str, str]) -> str:
     return body
 
 
-def parse_header(name, clock) -> Dict[str, str]:
+def parse_header(name: str, clock: str) -> Tuple[str, Dict[str, str]]:
     in8 = string('    VL_IN8(').map(lambda x: 'IN8')
     in16 = string('    VL_IN16(').map(lambda x: 'IN16')
     in32 = string('    VL_IN(').map(lambda x: 'IN32')
@@ -145,18 +146,18 @@ def parse_header(name, clock) -> Dict[str, str]:
     # remove clock from port list
     del portlist[clock]
 
-    return portlist
+    return name, portlist
 
 
 @click.command(context_settings=dict(help_option_names=["-h", "--help"]))
 @click.option('-c', '--clock', default='clk', help='Clock name of top module.')
 @click.option('-n', '--name', default='example', help='Name of top module.')
-def main(name, clock):
+def main(name: str, clock: str):
 
     subprocess.run([f'make', f'clean']),
     subprocess.run([f'make', f'TOP={name}', f'obj_dir/V{name}.cpp'])
 
-    code = create_cpp(name, parse_header(name, clock))
+    code = create_cpp(*parse_header(name, clock))
 
     with open(f'{name}.cc', 'w') as f:
         f.write(code)
