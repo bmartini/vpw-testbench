@@ -148,7 +148,7 @@ def parse_header(name, clock) -> Dict[str, str]:
     return portlist
 
 
-@click.command()
+@click.command(context_settings=dict(help_option_names=["-h", "--help"]))
 @click.option('-c', '--clock', default='clk', help='Clock name of top module.')
 @click.option('-n', '--name', default='example', help='Name of top module.')
 def main(name, clock):
