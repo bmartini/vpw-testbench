@@ -162,6 +162,8 @@ def main(name: str, clock: str):
     with open(f'{name}.cc', 'w') as f:
         f.write(code)
 
+    subprocess.run([f'make', f'TOP={name}'])
+
 
 if __name__ == '__main__':
     main()
