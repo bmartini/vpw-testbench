@@ -166,3 +166,70 @@ class Slave:
                     if last:
                         self.queue[pos].append(list(self.current[pos]))
                         self.current[pos] = []
+
+
+class Checker:
+    def __init__(self, reset: str, interface: str,
+                 data_width: int, concat: int = 1) -> None:
+        self.reset = reset
+        self.interface = interface
+        self.data_width = data_width
+        self.concat = concat
+
+    def __unpack(self, val: Union[int, List[int]]) -> int:
+        if isinstance(val, int):
+            assert((self.concat * self.data_width) <= 64)
+            return val
+        else:
+            start = ceil(self.concat * self.data_width / 32)
+            shift = [32*s for s in range(start)]
+            number: int = 0
+            for v, s in zip(val, shift):
+                number = number | (v << s)
+
+            return number
+
+    def init(self, dut) -> Generator:
+        self.__dut = dut
+
+        io = yield
+        past_data: int = self.__unpack(io[f"{self.interface}_tdata"])
+        past_last: bool = bool(io[f"{self.interface}_tlast"])
+        past_valid: bool = bool(io[f"{self.interface}_tvalid"])
+        past_ready: bool = bool(io[f"{self.interface}_tready"])
+        past_reset: bool = bool(io[f"{self.reset}"])
+
+        while True:
+            io = yield
+
+            io_data: int = self.__unpack(io[f"{self.interface}_tdata"])
+            io_last: bool = io[f"{self.interface}_tlast"]
+            io_valid: bool = io[f"{self.interface}_tvalid"]
+            io_ready: bool = io[f"{self.interface}_tready"]
+            io_reset: bool = io[f"{self.reset}"]
+
+            # data steady when stalled
+            if past_valid & ~past_ready:
+                assert(past_data == io_data)
+
+            # only lower valid after a transaction
+            if ~past_reset & (past_valid & ~io_valid):
+                assert(past_ready)
+
+            # only lower last after a transaction
+            if ~past_reset & (past_last & ~io_last):
+                assert(past_ready & past_valid)
+
+            # last only high when valid is high
+            if io_last:
+                assert(io_valid)
+
+            # only lower ready after a transaction
+            if ~past_reset & (past_ready & ~io_ready):
+                assert(past_valid)
+
+            past_data = io_data
+            past_last = io_last
+            past_valid = io_valid
+            past_ready = io_ready
+            past_reset = io_reset
