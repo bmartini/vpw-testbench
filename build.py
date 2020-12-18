@@ -159,7 +159,7 @@ def main(name: str, clock: str):
 
     code = create_cpp(*parse_header(name, clock))
 
-    with open(f'{name}.cc', 'w') as f:
+    with open(f'obj_dir/{name}.cc', 'w') as f:
         f.write(code)
 
     subprocess.run([f'make', f'TOP={name}'])
