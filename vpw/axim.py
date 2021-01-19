@@ -182,7 +182,9 @@ class Master:
         assert(((addr % 4096) + int(len(burst) * self.data_width / 8)) <= 4096)
         assert(len(burst) <= 256)
         self.queue_w.append(burst)
-        self.queue_aw.append({"awaddr": addr, "awlen": len(burst) - 1, "awid": write_id})
+        self.queue_aw.append({"awaddr": int(addr),
+                              "awlen": int(len(burst) - 1),
+                              "awid": int(write_id)})
 
     def send_read(self, addr: int, length: int, read_id: int = 0) -> None:
         """
@@ -193,9 +195,9 @@ class Master:
         assert(((8 * addr) % self.data_width) == 0)
         assert(((addr % 4096) + int(length * self.data_width / 8)) <= 4096)
         assert(length <= 256)
-        self.queue_ar.append({"araddr": addr,
-                              "arlen": length - 1,
-                              "arid": read_id})
+        self.queue_ar.append({"araddr": int(addr),
+                              "arlen": int(length - 1),
+                              "arid": int(read_id)})
 
     def recv_read(self, read_id: int = 0) -> Optional[List[int]]:
         """
