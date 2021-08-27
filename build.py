@@ -169,7 +169,7 @@ def main(name: str, clock: str):
     with open(f'obj_dir/{name}.cc', 'w') as f:
         f.write(code)
 
-    subprocess.run([f'make', f'TOP={name}'])
+    subprocess.run([f'make', f'TOP={name}', f'CLOCK={clock}'])
 
 
 if __name__ == '__main__':
