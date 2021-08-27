@@ -9,7 +9,9 @@ from parsy import string  # type: ignore
 from parsy import ParseError  # type: ignore
 
 import click
+import re
 import subprocess
+import sys
 
 
 def generate_intro(name: str) -> str:
@@ -130,13 +132,15 @@ def parse_header(name: str, clock: str) -> Tuple[str, Dict[str, str]]:
     ports = (in8 | in16 | in32 | in64 | inw | out8 | out16
              | out32 | out64 | outw).desc('variable width definition')
 
-    varname = regex('[a-za-z]+\w*').desc('variable name')
+    varname = regex(r'[a-zA-Z_0-9]+').desc('variable name')
 
     with open(f'obj_dir/V{name}.h', 'r') as f:
         lines = f.readlines()
 
     portlist = {}
     for line in lines:
+        # Collapse differences between different verilator versions
+        line = re.sub(r'(\sVL_[A-Z0-9]*)\([\(\&]*([a-zA-Z0-9_]+)\)?,', r'\1(\2,', line)
         try:
             port_def, _ = seq(ports, varname).parse_partial(line)
             portlist[port_def[1]] = port_def[0]
@@ -144,7 +148,10 @@ def parse_header(name: str, clock: str) -> Tuple[str, Dict[str, str]]:
             pass
 
     # remove clock from port list
-    del portlist[clock]
+    if clock in portlist:
+        del portlist[clock]
+    else:
+        print("Clock signal '{}' not in portlist: ".format(clock), portlist.keys(), file=sys.stderr)
 
     return name, portlist
 
