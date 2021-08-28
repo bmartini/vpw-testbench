@@ -162,14 +162,14 @@ def parse_header(name: str, clock: str) -> Tuple[str, Dict[str, str]]:
 def main(name: str, clock: str):
 
     subprocess.run([f'make', f'clean']),
-    subprocess.run([f'make', f'TOP={name}', f'obj_dir/V{name}.cpp'])
+    subprocess.run([f'make', f'NAME={name}', f'obj_dir/V{name}.cpp'])
 
     code = create_cpp(*parse_header(name, clock))
 
     with open(f'obj_dir/{name}.cc', 'w') as f:
         f.write(code)
 
-    subprocess.run([f'make', f'TOP={name}', f'CLOCK={clock}'])
+    subprocess.run([f'make', f'NAME={name}', f'CLOCK={clock}'])
 
 
 if __name__ == '__main__':

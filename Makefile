@@ -1,7 +1,7 @@
 .PHONY: all
 all: testbench
 
-TOP=example
+NAME=example
 CLOCK=clk
 
 VERILATOR_ROOT ?= $(shell bash -c 'verilator -V | grep VERILATOR_ROOT | head -1 | sed -e "s/^.*=\s*//"')
@@ -10,17 +10,17 @@ PYINC := $(shell bash -c 'python3 -m pybind11 --includes')
 OUTPUT := testbench$(shell bash -c 'python3-config --extension-suffix')
 
 
-obj_dir/V$(TOP).cpp: hdl/$(TOP).sv
-	verilator -CFLAGS "-fPIC -std=c++17" -I./hdl --trace -cc ./hdl/$(TOP).sv
+obj_dir/V$(NAME).cpp: hdl/$(NAME).sv
+	verilator -CFLAGS "-fPIC -std=c++17" -I./hdl --trace -cc ./hdl/$(NAME).sv
 
-obj_dir/V$(TOP)__ALL.a: obj_dir/V$(TOP).cpp
-	make --no-print-directory -C obj_dir -f V$(TOP).mk
+obj_dir/V$(NAME)__ALL.a: obj_dir/V$(NAME).cpp
+	make --no-print-directory -C obj_dir -f V$(NAME).mk
 
-testbench : obj_dir/$(TOP).cc obj_dir/V$(TOP)__ALL.a
+testbench : obj_dir/$(NAME).cc obj_dir/V$(NAME)__ALL.a
 	g++ -O3 -D CLOCK=$(CLOCK) -Wall -shared -std=c++17 -fPIC $(PYINC) \
 		-I. -I$(VINC) -Iobj_dir $(VINC)/verilated.cpp \
-		$(VINC)/verilated_vcd_c.cpp obj_dir/$(TOP).cc \
-		obj_dir/V$(TOP)__ALL.a -o $(OUTPUT)
+		$(VINC)/verilated_vcd_c.cpp obj_dir/$(NAME).cc \
+		obj_dir/V$(NAME)__ALL.a -o $(OUTPUT)
 
 .PHONY: clean
 clean:
