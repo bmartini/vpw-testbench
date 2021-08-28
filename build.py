@@ -134,7 +134,7 @@ def parse_header(name: str, clock: str) -> Tuple[str, Dict[str, str]]:
 
     varname = regex(r'[a-zA-Z_0-9]+').desc('variable name')
 
-    with open(f'obj_dir/V{name}.h', 'r') as f:
+    with open(f'{name}/V{name}.h', 'r') as f:
         lines = f.readlines()
 
     portlist = {}
@@ -162,11 +162,11 @@ def parse_header(name: str, clock: str) -> Tuple[str, Dict[str, str]]:
 def main(name: str, clock: str):
 
     subprocess.run([f'make', f'clean']),
-    subprocess.run([f'make', f'NAME={name}', f'obj_dir/V{name}.cpp'])
+    subprocess.run([f'make', f'NAME={name}', f'{name}/V{name}.cpp'])
 
     code = create_cpp(*parse_header(name, clock))
 
-    with open(f'obj_dir/{name}.cc', 'w') as f:
+    with open(f'{name}/{name}.cc', 'w') as f:
         f.write(code)
 
     subprocess.run([f'make', f'NAME={name}', f'CLOCK={clock}'])

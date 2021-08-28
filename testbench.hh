@@ -6,6 +6,13 @@
 using namespace pybind11::literals;
 namespace py = pybind11;
 
+#define STRING(s) #s
+#define STRINGIFY(s) STRING(s)
+
+#ifndef NAME
+#define NAME testbench
+#endif
+
 #ifndef CLOCK
 #define CLOCK clk
 #endif
@@ -32,7 +39,7 @@ void init(const bool trace = true) {
     Verilated::traceEverOn(true);
     wave = new VerilatedVcdC;
     dut->trace(wave, 99);
-    wave->open("testbench.vcd");
+    wave->open(STRINGIFY(NAME.vcd));
   }
 }
 
@@ -71,7 +78,7 @@ py::dict tick() {
   return IO;
 }
 
-PYBIND11_MODULE(testbench, m) {
+PYBIND11_MODULE(NAME, m) {
   m.doc() = "Python interface for a Verilator Design Under Test (dut)";
 
   m.def("init", &init, "Initialize DUT simulation", py::arg("trace") = true);

@@ -3,7 +3,7 @@
 *.vcd
 *.fst
 
-obj_dir/
+example/
 *.so
 .mypy_cache
 __pycache__

@@ -6,14 +6,15 @@ from typing import List
 
 from math import ceil
 
-import testbench as dut  # type: ignore
 
 # Maintains persistent background tasks in the form of a list of generators
 # that get incremented every clock cycle.
 background = []
 
 
-def init(trace: bool = True):
+def init(testbench, trace: bool = True):
+    global dut
+    dut = testbench
     dut.init(trace)
 
 

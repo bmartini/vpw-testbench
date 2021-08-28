@@ -10,9 +10,11 @@ import vpw.axim2ram as axim2ram
 
 import random
 
+import example as dut  # type: ignore
+
 if __name__ == '__main__':
 
-    vpw.init()
+    vpw.init(dut)
 
     up_stream = axis.Master("up_axis", 32, concat=2)
     vpw.register(up_stream)
