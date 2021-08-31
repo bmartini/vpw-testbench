@@ -3,6 +3,7 @@
 *.vcd
 *.fst
 
+bram/
 example/
 *.so
 .mypy_cache
