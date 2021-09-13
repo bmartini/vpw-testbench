@@ -23,3 +23,7 @@ Once the shared object is built the *example.py* testbench script can be
 updated and run any number of times. However, if the RTL is updated the
 *build.py* script must be rerun and the shared object recreated before the
 changes can be observed.
+
+## Documentation
+
+Explanation of use can be found [here](https://bmartini.github.io/vpw-testbench).
