@@ -63,7 +63,12 @@ BRAM module.
 
 == A. Simple BRAM interaction
 
-
+Using the mid-level interface provided by the *vpw* package, functions are
+created to more easily set the values of the modules inputs. The values are
+applied to the port list variables during a clock 'tick' and the *vpw* tick
+function returns the values of all port list variable (both inputs and outputs)
+in the form of a python Dict object there the variables number is used as a key
+to its value.
 
 == B. Simple BRAM interface
 
