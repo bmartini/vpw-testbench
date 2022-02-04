@@ -12,7 +12,8 @@ import random
 
 if __name__ == '__main__':
 
-    dut = vpw.parse(name='example', clock='clk')
+    dut = vpw.parse(module='example',
+                    clock='clk')
     vpw.init(dut)
 
     up_stream = axis.Master("up_axis", 32, concat=2)
