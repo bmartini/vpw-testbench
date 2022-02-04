@@ -5,6 +5,7 @@ Verilator Python Wrapper Package
 from typing import List
 from typing import Dict
 from typing import Tuple
+from types import ModuleType
 
 from parsy import seq  # type: ignore
 from parsy import regex  # type: ignore
@@ -22,8 +23,11 @@ import importlib
 # that get incremented every clock cycle.
 background = []
 
+# Design Under Test
+dut: ModuleType
 
-def init(testbench, trace: bool = True):
+
+def init(testbench: ModuleType, trace: bool = True):
     global dut
     dut = testbench
     dut.init(trace)
@@ -89,7 +93,7 @@ def finish():
     dut.finish()
 
 
-def parse(name: str = 'example', clock: str = 'clk'):
+def parse(name: str = 'example', clock: str = 'clk') -> ModuleType:
 
     def generate_intro(name: str) -> str:
         return f'#include "V{name}.h"\n' \
@@ -224,19 +228,52 @@ def parse(name: str = 'example', clock: str = 'clk'):
 
         return name, portlist
 
-    # Build
-    output = subprocess.run(['python3-config', '--extension-suffix'], stdout=PIPE, text=True)
-    print(f"{output.stdout.strip()}")
+    # shell out for build information
+    verilator_root_rc = subprocess.run(['verilator', '-V'], stdout=PIPE, text=True)
+    for line in verilator_root_rc.stdout.splitlines():
+        if "VERILATOR_ROOT" in line:
+            vinc = f'{line.split()[2]}/include'
+            break
 
-    subprocess.run(['rm', '-rf', f'{name}/', f'{name}*.so', f'{name}.vcd']),
+    pyinc_rc = subprocess.run(['python3', '-m', 'pybind11', '--includes'], stdout=PIPE, text=True)
+    pyinc = list(pyinc_rc.stdout.strip().split(" "))
 
-    subprocess.run(['make', f'NAME={name}', f'{name}/V{name}.cpp'])
+    output_rc = subprocess.run(['python3-config', '--extension-suffix'], stdout=PIPE, text=True)
+    output = f"{name}{output_rc.stdout.strip()}"
 
-    code = create_cpp(*parse_header(name, clock))
+    # remove any old build files
+    subprocess.run(['rm', '-rf', f'{name}', f'{output}', f"{name}.vcd"])
 
+    # verilate the SV module into C++
+    verilate_module = ['verilator', '-Mdir', f'{name}']
+    verilate_module = verilate_module + ['-CFLAGS', '-fPIC -std=c++17']
+    verilate_module = verilate_module + ['-I./hdl']
+    verilate_module = verilate_module + ['--trace']
+    verilate_module = verilate_module + ['-cc']
+    verilate_module = verilate_module + [f'./hdl/{name}.sv']
+    subprocess.run(verilate_module)
+
+    # create the VPW testbench interface file
     with open(f'{name}/{name}.cc', 'w') as f:
-        f.write(code)
+        f.write(create_cpp(*parse_header(name, clock)))
 
-    subprocess.run(['make', f'NAME={name}', f'CLOCK={clock}'])
+    # compile the verilated module into object files
+    subprocess.run(['make', '--no-print-directory', '-C', f'{name}', '-f', f'V{name}.mk'])
+
+    # compile the VPW testbench interface file and object files into a library
+    compile_package = ['g++', '-O3', '-Wall']
+    compile_package = compile_package + ['-D', f'NAME={name}']
+    compile_package = compile_package + ['-D', f'CLOCK={clock}']
+    compile_package = compile_package + ['-shared']
+    compile_package = compile_package + ['-std=c++17']
+    compile_package = compile_package + ['-fPIC']
+    compile_package = compile_package + pyinc
+    compile_package = compile_package + ['-I.', f'-I{vinc}', f'-I{name}']
+    compile_package = compile_package + [f'{vinc}/verilated.cpp']
+    compile_package = compile_package + [f'{vinc}/verilated_vcd_c.cpp']
+    compile_package = compile_package + [f'{name}/{name}.cc']
+    compile_package = compile_package + [f'{name}/V{name}__ALL.a']
+    compile_package = compile_package + ['-o', f'{output}']
+    subprocess.run(compile_package)
 
     return importlib.import_module(name)
