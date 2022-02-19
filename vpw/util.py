@@ -2,9 +2,11 @@
 Verilator Python Wrapper Package
 """
 
+from typing import Optional
 from typing import List
 from typing import Dict
 from typing import Tuple
+from typing import Any
 from types import ModuleType
 
 from parsy import seq  # type: ignore
@@ -34,6 +36,7 @@ def init(testbench: ModuleType, trace: bool = True):
 
 
 def prep(port: str, value: List[int]):
+    global dut
     dut.prep(port, value)
 
 
@@ -63,6 +66,7 @@ def register(interface):
     """ When an interface is registered with VPW it's first initiated and then
     its generator is run in the background """
 
+    global dut
     gen = interface.init(dut)
     next(gen)
 
@@ -72,6 +76,7 @@ def register(interface):
 def tick():
     """ Advance TB clock """
 
+    global dut
     io = dut.tick()
     for gen in background:
         try:
@@ -90,11 +95,28 @@ def idle(time: int = 1):
 
 
 def finish():
+    global dut
     dut.finish()
 
 
-def parse(module: str = 'example', package: str = '', clock: str = 'clk') -> ModuleType:
-    package = module if package == '' else package
+def parse(module: str = 'example', clock: str = 'clk', package: Optional[str] = None,
+          parameter: Optional[Dict[str, Any]] = None,
+          define: Optional[Dict[str, Any]] = None) -> ModuleType:
+
+    package = module if package is None else package
+
+    parameters: List = []
+    if parameter:
+        for macro, value in parameter.items():
+            parameters = parameters + [f'-pvalue+{macro}={value}']
+
+    defines: List = []
+    if define:
+        for macro, value in define.items():
+            if value is None:
+                defines = defines + [f'+define+{macro}']
+            else:
+                defines = defines + [f'+define+{macro}={value}']
 
     def generate_intro(name: str) -> str:
         return f'#include "V{name}.h"\n' \
@@ -251,6 +273,8 @@ def parse(module: str = 'example', package: str = '', clock: str = 'clk') -> Mod
     verilate_module = verilate_module + ['-I./hdl']
     verilate_module = verilate_module + ['--trace']
     verilate_module = verilate_module + ['-cc']
+    verilate_module = verilate_module + parameters
+    verilate_module = verilate_module + defines
     verilate_module = verilate_module + [f'./hdl/{module}.sv']
     subprocess.run(verilate_module)
 
