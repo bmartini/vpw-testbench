@@ -17,6 +17,7 @@ from parsy import ParseError  # type: ignore
 from math import ceil
 import re
 from subprocess import PIPE
+import os
 import sys
 import subprocess
 import importlib
@@ -99,11 +100,16 @@ def finish():
     dut.finish()
 
 
-def parse(module: str = 'example', clock: str = 'clk', package: Optional[str] = None,
+def parse(package: Optional[str] = None, module: str = 'example', clock: str = 'clk',
+          include: List[str] = ['./hdl'],
           parameter: Optional[Dict[str, Any]] = None,
           define: Optional[Dict[str, Any]] = None) -> ModuleType:
 
     package = module if package is None else package
+
+    includes: List = []
+    for dirs in include:
+        includes = includes + [f'-I{dirs}']
 
     parameters: List = []
     if parameter:
@@ -251,6 +257,16 @@ def parse(module: str = 'example', clock: str = 'clk', package: Optional[str] = 
 
         return name, portlist
 
+    def topfile(include: List[str], module: str) -> List[str]:
+        filename = [f"{module}.sv"]
+        for dirname in include:
+            for root, dirs, files in os.walk(dirname):
+                if f"{module}.sv" in files:
+                    filename = [f"{root}/{module}.sv"]
+                if f"{module}.v" in files:
+                    filename = [f"{root}/{module}.v"]
+        return filename
+
     # shell out for build information
     verilator_root_rc = subprocess.run(['verilator', '-V'], stdout=PIPE, text=True)
     for line in verilator_root_rc.stdout.splitlines():
@@ -270,12 +286,12 @@ def parse(module: str = 'example', clock: str = 'clk', package: Optional[str] = 
     # verilate the SV module into C++
     verilate_module = ['verilator', '-Mdir', f'{package}']
     verilate_module = verilate_module + ['-CFLAGS', '-fPIC -std=c++17']
-    verilate_module = verilate_module + ['-I./hdl']
+    verilate_module = verilate_module + includes
     verilate_module = verilate_module + ['--trace']
     verilate_module = verilate_module + ['-cc']
     verilate_module = verilate_module + parameters
     verilate_module = verilate_module + defines
-    verilate_module = verilate_module + [f'./hdl/{module}.sv']
+    verilate_module = verilate_module + topfile(include, module)
     subprocess.run(verilate_module)
 
     # create the VPW testbench interface file
