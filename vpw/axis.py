@@ -3,7 +3,6 @@ AXIS Slave and Master Interface
 """
 
 from typing import Generator
-from typing import Optional
 from typing import Union
 from typing import Deque
 from typing import List
@@ -129,10 +128,10 @@ class Slave:
 
         self.__dut.prep(f"{self.interface}_tready", [self.__ready])
 
-    def recv(self, position: int = 0) -> Optional[List[int]]:
+    def recv(self, position: int = 0) -> List[int]:
         """ Returns a list of data recived, one element per beat. """
         if not self.queue[position]:
-            return None
+            return []
         else:
             stream: List[int] = self.queue[position].popleft()
             self.pending[position] -= len(stream)
