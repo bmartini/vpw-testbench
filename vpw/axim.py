@@ -3,7 +3,6 @@ AXIM Master Interface
 """
 
 from typing import Generator
-from typing import Optional
 from typing import Union
 from typing import Deque
 from typing import List
@@ -199,13 +198,13 @@ class Master:
                               "arlen": int(length - 1),
                               "arid": int(read_id)})
 
-    def recv_read(self, read_id: int = 0) -> Optional[List[int]]:
+    def recv_read(self, read_id: int = 0) -> List[int]:
         """
         Non-Blocking: Returns a burst of received data contained in a list, one
         beat per list element.
         """
         if not self.queue_r[read_id]:
-            return None
+            return []
         else:
             return self.queue_r[read_id].popleft()
 

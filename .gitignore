@@ -3,7 +3,8 @@
 *.vcd
 *.fst
 
-bram/
+tutorial_1a/
+tutorial_1b/
 example/
 *.so
 .mypy_cache
