@@ -100,7 +100,7 @@ def finish():
     dut.finish()
 
 
-def parse(package: Optional[str] = None, module: str = 'example', clock: str = 'clk',
+def parse(package: Optional[str] = None, module: str = 'testbench', clock: str = 'clk',
           include: List[str] = ['./hdl'],
           parameter: Optional[Dict[str, Any]] = None,
           define: Optional[Dict[str, Any]] = None) -> ModuleType:
@@ -310,6 +310,7 @@ def parse(package: Optional[str] = None, module: str = 'example', clock: str = '
     compile_package = compile_package + ['-fPIC']
     compile_package = compile_package + pyinc
     compile_package = compile_package + ['-I.', f'-I{vinc}', f'-I{package}']
+    compile_package = compile_package + [f'-I{os.path.dirname(__file__)}']
     compile_package = compile_package + [f'{vinc}/verilated.cpp']
     compile_package = compile_package + [f'{vinc}/verilated_vcd_c.cpp']
     compile_package = compile_package + [f'{package}/{module}.cc']
