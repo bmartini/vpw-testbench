@@ -3,51 +3,52 @@
 Tutorial_1a testbench
 """
 
-import vpw.util as vpw
-
-import bram as dut  # type: ignore
-
+import vpw.util as util
 
 def prep_wr_bus(en, addr, data):
-    vpw.prep(f"wr_data", vpw.pack(32, data))
-    vpw.prep(f"wr_addr", vpw.pack(8, addr))
-    vpw.prep(f"wr_en", [en])
+    util.prep(f"wr_data", util.pack(32, data))
+    util.prep(f"wr_addr", util.pack(8, addr))
+    util.prep(f"wr_en", [en])
 
 
 def prep_rd_bus(en, addr):
-    vpw.prep(f"rd_addr", vpw.pack(8, addr))
-    vpw.prep(f"rd_en", [en])
+    util.prep(f"rd_addr", util.pack(8, addr))
+    util.prep(f"rd_en", [en])
 
 
 if __name__ == '__main__':
 
-    vpw.init(dut)
+    dut = util.parse(package='tutorial_1a',
+                     module='bram',
+                     clock='clk')
 
-    vpw.idle(10)
+    util.init(dut)
+
+    util.idle(10)
     prep_wr_bus(0, 0, 0)
     prep_rd_bus(0, 0)
 
     print(f"\nSend data to be written to BRAM\n")
     for i in range(10):
         prep_wr_bus(1, i, (i + 1))
-        io = vpw.tick()
+        io = util.tick()
         print(f"write addr: {i}, data: {io['wr_data']}")
 
     prep_wr_bus(0, 0, 0)
-    vpw.idle(10)
+    util.idle(10)
 
     print(f"\nReceive data as it is read from BRAM\n")
     # send read address, it is only after this 'tick' that the values are applied
     prep_rd_bus(1, 0)
-    io = vpw.tick()
+    io = util.tick()
 
     for i in range(1, 11):
         prep_rd_bus(1, i)
-        io = vpw.tick()
+        io = util.tick()
         print(f"read addr: {(i - 1)}, data: {io['rd_data']}")
 
     prep_rd_bus(0, 0)
-    vpw.idle(10)
+    util.idle(10)
 
     print(f"")
-    vpw.finish()
+    util.finish()
