@@ -8,8 +8,8 @@ interfaces to the module.
 
 ## Low level functions
 
-These functions are auto generated with the build script when it creates the
-pybind11 package encapsulating the Verilated module.
+These functions are auto generated with the testbench package when it creates
+the pybind11 object encapsulating the Verilated module.
 
 ### init/finish
 
