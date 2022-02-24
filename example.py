@@ -68,7 +68,7 @@ if __name__ == '__main__':
     while True:
         util.tick()
         burst = axim.recv_read()
-        if isinstance(burst, list):
+        if burst:
             print(burst)
             for x, beat in enumerate(burst):
                 assert((x+1) == beat)
