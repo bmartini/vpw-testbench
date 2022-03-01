@@ -14,6 +14,20 @@ SystemVerilog RTL files within the 'hdl' directory and creates a pybind11
 shared object that is then used by the testbench script to interact with the
 module.
 
+## Install
+
+Install the package directly from GitHub using the follower command.
+
+```bash
+pip install git+git://github.com/bmartini/vpw-testbench.git
+```
+
+Or to upgrade an already installed VPW package.
+
+```bash
+pip install --upgrade git+git://github.com/bmartini/vpw-testbench.git
+```
+
 ## Documentation
 
 Explanation of use can be found [here](https://bmartini.github.io/vpw-testbench).
