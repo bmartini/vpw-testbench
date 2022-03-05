@@ -5,50 +5,58 @@ Tutorial_1a testbench
 
 import vpw
 
-def prep_wr_bus(en, addr, data):
-    vpw.prep(f"wr_data", vpw.pack(32, data))
-    vpw.prep(f"wr_addr", vpw.pack(8, addr))
-    vpw.prep(f"wr_en", [en])
-
-
-def prep_rd_bus(en, addr):
-    vpw.prep(f"rd_addr", vpw.pack(8, addr))
-    vpw.prep(f"rd_en", [en])
-
-
 if __name__ == '__main__':
 
     dut = vpw.create(package='tutorial_1a',
                      module='bram',
-                     clock='clk')
+                     clock='clk',
+                     parameter={'BRAM_DWIDTH': 32,
+                                'BRAM_AWIDTH': 8})
 
-    vpw.init(dut)
+    dut.init(trace=True)
 
-    vpw.idle(10)
-    prep_wr_bus(0, 0, 0)
-    prep_rd_bus(0, 0)
+    for _ in range(10):
+        dut.tick()
+
+    dut.prep("wr_data", [0])
+    dut.prep("wr_addr", [0])
+    dut.prep("wr_en", [0])
+    dut.prep("rd_addr", [0])
+    dut.prep("rd_en", [0])
+    dut.tick()
 
     print(f"\nSend data to be written to BRAM\n")
     for i in range(10):
-        prep_wr_bus(1, i, (i + 1))
-        io = vpw.tick()
+        dut.prep("wr_data", [i + 1])
+        dut.prep("wr_addr", [i])
+        dut.prep("wr_en", [1])
+        io = dut.tick()
         print(f"write addr: {i}, data: {io['wr_data']}")
 
-    prep_wr_bus(0, 0, 0)
-    vpw.idle(10)
+    dut.prep("wr_data", [0])
+    dut.prep("wr_addr", [0])
+    dut.prep("wr_en", [0])
+
+    for _ in range(10):
+        dut.tick()
 
     print(f"\nReceive data as it is read from BRAM\n")
     # send read address, it is only after this 'tick' that the values are applied
-    prep_rd_bus(1, 0)
-    io = vpw.tick()
+    dut.prep("rd_addr", [0])
+    dut.prep("rd_en", [1])
+    io = dut.tick()
 
     for i in range(1, 11):
-        prep_rd_bus(1, i)
-        io = vpw.tick()
+        dut.prep("rd_addr", [i])
+        dut.prep("rd_en", [1])
+        io = dut.tick()
         print(f"read addr: {(i - 1)}, data: {io['rd_data']}")
 
-    prep_rd_bus(0, 0)
-    vpw.idle(10)
+    dut.prep("rd_addr", [0])
+    dut.prep("rd_en", [0])
 
-    print(f"")
-    vpw.finish()
+    for _ in range(10):
+        dut.tick()
+
+    print("")
+    dut.finish()

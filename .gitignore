@@ -5,6 +5,7 @@
 
 tutorial_1a/
 tutorial_1b/
+tutorial_1c/
 example/
 *.so
 .mypy_cache

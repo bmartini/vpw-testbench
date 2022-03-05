@@ -5,89 +5,51 @@ Tutorial_1b testbench
 
 import vpw
 
-from typing import Generator
+def prep_wr_bus(en, addr, data):
+    vpw.prep(f"wr_data", vpw.pack(32, data))
+    vpw.prep(f"wr_addr", vpw.pack(8, addr))
+    vpw.prep(f"wr_en", [en])
 
 
-class Write:
-    def __init__(self, addr_width: int, data_width: int) -> None:
-        self.__data_width = data_width
-        self.__addr_width = addr_width
-
-    def set(self, addr: int, data: int) -> None:
-        self.__dut.prep(f"wr_data", vpw.pack(self.__data_width, data))
-        self.__dut.prep(f"wr_addr", vpw.pack(self.__addr_width, addr))
-        self.__dut.prep(f"wr_en", [1])
-
-    def init(self, dut) -> Generator:
-        self.__dut = dut
-
-        # init values applied to the write interface when registered
-        self.__dut.prep(f"wr_data", vpw.pack(self.__data_width, 0))
-        self.__dut.prep(f"wr_addr", vpw.pack(self.__addr_width, 0))
-        self.__dut.prep(f"wr_en", [0])
-
-        while True:
-            yield  # pause until a tick
-            self.__dut.prep(f"wr_data", vpw.pack(self.__data_width, 0))
-            self.__dut.prep(f"wr_addr", vpw.pack(self.__addr_width, 0))
-            self.__dut.prep(f"wr_en", [0])
-
-
-class Read:
-    def __init__(self, addr_width: int) -> None:
-        self.__addr_width = addr_width
-
-    def set(self, addr: int) -> None:
-        self.__dut.prep(f"rd_addr", vpw.pack(self.__addr_width, addr))
-        self.__dut.prep(f"rd_en", [1])
-
-    def init(self, dut) -> Generator:
-        self.__dut = dut
-
-        # init values applied to the read interface when registered
-        self.__dut.prep(f"rd_addr", vpw.pack(self.__addr_width, 0))
-        self.__dut.prep(f"rd_en", [0])
-
-        while True:
-            yield  # pause until a tick
-            self.__dut.prep(f"rd_addr", vpw.pack(self.__addr_width, 0))
-            self.__dut.prep(f"rd_en", [0])
+def prep_rd_bus(en, addr):
+    vpw.prep(f"rd_addr", vpw.pack(8, addr))
+    vpw.prep(f"rd_en", [en])
 
 
 if __name__ == '__main__':
 
     dut = vpw.create(package='tutorial_1b',
                      module='bram',
-                     clock='clk')
+                     clock='clk',
+                     parameter={'BRAM_DWIDTH': 128,
+                                'BRAM_AWIDTH': 8})
 
     vpw.init(dut)
 
-    write = Write(8, 32)
-    vpw.register(write)
-
-    read = Read(8)
-    vpw.register(read)
-
     vpw.idle(10)
+    prep_wr_bus(0, 0, 0)
+    prep_rd_bus(0, 0)
 
     print(f"\nSend data to be written to BRAM\n")
     for i in range(10):
-        write.set(i, (i + 1))
+        prep_wr_bus(1, i, (i + 1))
         io = vpw.tick()
-        print(f"write addr: {i}, data: {io['wr_data']}")
+        print(f"write addr: {i}, data: {vpw.unpack(128, io['wr_data'])}")
 
+    prep_wr_bus(0, 0, 0)
     vpw.idle(10)
 
     print(f"\nReceive data as it is read from BRAM\n")
     # send read address, it is only after this 'tick' that the values are applied
-    read.set(0)
+    prep_rd_bus(1, 0)
     io = vpw.tick()
 
     for i in range(1, 11):
-        read.set(i)
+        prep_rd_bus(1, i)
         io = vpw.tick()
-        print(f"read addr: {(i - 1)}, data: {io['rd_data']}")
+        print(f"read addr: {(i - 1)}, data: {vpw.unpack(128, io['rd_data'])}")
 
+    prep_rd_bus(0, 0)
     vpw.idle(10)
 
     print(f"")
