@@ -1,18 +1,21 @@
 # Verilator Python Wrapper
 
-An example project that provides a Python wrapper around a Verilatlated module
-and builds a complex testbench around it.
+A Python package (with examples) that provides a Python wrapper around a
+SystemVerilog module and builds a complex testbench around it using the
+Verilator simulator.
 
-## Build and Run
+## Run Example Testbench
 
 ```bash
+git clone https://github.com/bmartini/vpw-testbench.git
+cd vpw-testbench
 ./example.py
 ```
 
 The testbench script in combination with the *vpw* package will take the
 SystemVerilog RTL files within the 'hdl' directory and creates a pybind11
 shared object that is then used by the testbench script to interact with the
-module.
+SystemVerilog module.
 
 ## Install
 
