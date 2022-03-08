@@ -23,7 +23,7 @@ dut = vpw.create(package='test1',
                  clock='clock',
                  include=['../hdl', '../test'],
                  parameter={'MEM_DWIDTH': 128,
-                            'MEM_AWIDTH': 8})
+                            'MEM_AWIDTH': 8},
                  define={'SIM': None})
 ```
 
