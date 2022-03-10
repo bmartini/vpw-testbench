@@ -110,15 +110,15 @@ Using the mid-level interface provided by the *vpw* package, functions are
 created to more easily set the values of the modules inputs. The values are
 applied to the port list variables during a clock 'tick' and the *vpw* tick
 function returns the values of all port list variable (both inputs and outputs)
-in the form of a python Dict object there the variables number is used as a key
-to its value.
+in the form of a python Dict object where the port name is used as a key to its
+value.
 
 ## C. Simple High Level BRAM interface
 
 Creating a high level write/read interface to the BRAM. A generator class is
 created for both the write and read buses. The classes are required to
 implements an 'init' function that is used by the background infrastructure.
-The class 'init' is a generator function what will apply initial values to the
+The class 'init' is a generator function that will apply initial values to the
 interface signals when 'registered' to the background infrastructure. There is
 a loop implemented within the class 'init' function, a yield pauses the loop
 and is only released after a system 'tick'.

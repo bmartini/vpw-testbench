@@ -6,7 +6,7 @@ Tutorial_1b testbench
 import vpw
 
 def prep_wr_bus(en, addr, data):
-    vpw.prep(f"wr_data", vpw.pack(32, data))
+    vpw.prep(f"wr_data", vpw.pack(128, data))
     vpw.prep(f"wr_addr", vpw.pack(8, addr))
     vpw.prep(f"wr_en", [en])
 
