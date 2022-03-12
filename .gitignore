@@ -2,10 +2,12 @@
 *.bak
 *.vcd
 *.fst
+*.gtkw
 
 tutorial_1a/
 tutorial_1b/
 tutorial_1c/
+tutorial_2/
 example/
 *.so
 .mypy_cache
