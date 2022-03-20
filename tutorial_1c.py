@@ -14,23 +14,23 @@ class Write:
         self.__addr_width = addr_width
 
     def set(self, addr: int, data: int) -> None:
-        self.__dut.prep(f"wr_data", vpw.pack(self.__data_width, data))
-        self.__dut.prep(f"wr_addr", vpw.pack(self.__addr_width, addr))
-        self.__dut.prep(f"wr_en", [1])
+        self.__dut.prep("wr_data", vpw.pack(self.__data_width, data))
+        self.__dut.prep("wr_addr", vpw.pack(self.__addr_width, addr))
+        self.__dut.prep("wr_en", [1])
 
     def init(self, dut) -> Generator:
         self.__dut = dut
 
         # init values applied to the write interface when registered
-        self.__dut.prep(f"wr_data", vpw.pack(self.__data_width, 0))
-        self.__dut.prep(f"wr_addr", vpw.pack(self.__addr_width, 0))
-        self.__dut.prep(f"wr_en", [0])
+        self.__dut.prep("wr_data", vpw.pack(self.__data_width, 0))
+        self.__dut.prep("wr_addr", vpw.pack(self.__addr_width, 0))
+        self.__dut.prep("wr_en", [0])
 
         while True:
             yield  # pause until a tick
-            self.__dut.prep(f"wr_data", vpw.pack(self.__data_width, 0))
-            self.__dut.prep(f"wr_addr", vpw.pack(self.__addr_width, 0))
-            self.__dut.prep(f"wr_en", [0])
+            self.__dut.prep("wr_data", vpw.pack(self.__data_width, 0))
+            self.__dut.prep("wr_addr", vpw.pack(self.__addr_width, 0))
+            self.__dut.prep("wr_en", [0])
 
 
 class Read:
@@ -38,20 +38,20 @@ class Read:
         self.__addr_width = addr_width
 
     def set(self, addr: int) -> None:
-        self.__dut.prep(f"rd_addr", vpw.pack(self.__addr_width, addr))
-        self.__dut.prep(f"rd_en", [1])
+        self.__dut.prep("rd_addr", vpw.pack(self.__addr_width, addr))
+        self.__dut.prep("rd_en", [1])
 
     def init(self, dut) -> Generator:
         self.__dut = dut
 
         # init values applied to the read interface when registered
-        self.__dut.prep(f"rd_addr", vpw.pack(self.__addr_width, 0))
-        self.__dut.prep(f"rd_en", [0])
+        self.__dut.prep("rd_addr", vpw.pack(self.__addr_width, 0))
+        self.__dut.prep("rd_en", [0])
 
         while True:
             yield  # pause until a tick
-            self.__dut.prep(f"rd_addr", vpw.pack(self.__addr_width, 0))
-            self.__dut.prep(f"rd_en", [0])
+            self.__dut.prep("rd_addr", vpw.pack(self.__addr_width, 0))
+            self.__dut.prep("rd_en", [0])
 
 
 if __name__ == '__main__':
@@ -70,7 +70,7 @@ if __name__ == '__main__':
 
     vpw.idle(10)
 
-    print(f"\nSend data to be written to BRAM\n")
+    print("\nSend data to be written to BRAM\n")
     for i in range(10):
         write.set(i, (i + 1))
         io = vpw.tick()
@@ -78,7 +78,7 @@ if __name__ == '__main__':
 
     vpw.idle(10)
 
-    print(f"\nReceive data as it is read from BRAM\n")
+    print("\nReceive data as it is read from BRAM\n")
     # send read address, it is only after this 'tick' that the values are applied
     read.set(0)
     io = vpw.tick()
@@ -90,5 +90,5 @@ if __name__ == '__main__':
 
     vpw.idle(10)
 
-    print(f"")
+    print("")
     vpw.finish()

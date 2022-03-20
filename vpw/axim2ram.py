@@ -2,13 +2,13 @@
 Simplified AXIM (software) Slave Interface driving a Memory
 """
 
-from typing import Generator
-from typing import Union
-from typing import Dict
-from typing import List
-from typing import Any
+import vpw
 
-from math import ceil
+from typing import Any
+from typing import Dict
+from typing import Generator
+from types import ModuleType
+
 from queue import Queue
 
 
@@ -23,27 +23,6 @@ class Memory:
         self.queue_ar: "Queue[Dict[str, Any]]" = Queue(4)  # read address channel
 
         self.ram: Dict[int, int] = {}
-
-    def __pack(self, val: int) -> List[int]:
-        if self.data_width <= 64:
-            return [val]
-        else:
-            start = ceil(self.data_width/32)
-            shift = [32*s for s in range(start)]
-            return [((val >> s) & 0xffffffff) for s in shift]
-
-    def __unpack(self, val: Union[int, List[int]]) -> int:
-        if isinstance(val, int):
-            assert(self.data_width <= 64)
-            return val
-        else:
-            start = ceil(self.data_width/32)
-            shift = [32*s for s in range(start)]
-            number: int = 0
-            for v, s in zip(val, shift):
-                number = number | (v << s)
-
-            return number
 
     def __w(self) -> Generator:
         beat_nb = 0
@@ -77,7 +56,8 @@ class Memory:
                     beat_nb = 0
                 else:
                     beat = self.queue_w.get()
-                    self.ram[int(8*address/self.data_width) + beat_nb - 1] = self.__unpack(beat["wdata"])
+                    self.ram[int(8*address/self.data_width) + beat_nb - 1] = \
+                        vpw.unpack(self.data_width, beat["wdata"])
                     last = beat["wlast"]
                     beat_nb += 1
 
@@ -105,7 +85,7 @@ class Memory:
         read_id = 0
 
         # setup
-        self.__dut.prep(f"{self.interface}_rdata", self.__pack(0))
+        self.__dut.prep(f"{self.interface}_rdata", vpw.pack(self.data_width, 0))
         self.__dut.prep(f"{self.interface}_rid", [0])
         self.__dut.prep(f"{self.interface}_rlast", [0])
         self.__dut.prep(f"{self.interface}_rvalid", [0])
@@ -117,17 +97,17 @@ class Memory:
 
                 if beat_nb == length:
                     beat_nb = 0
-                    self.__dut.prep(f"{self.interface}_rdata", self.__pack(0))
+                    self.__dut.prep(f"{self.interface}_rdata", vpw.pack(self.data_width, 0))
                     self.__dut.prep(f"{self.interface}_rid", [0])
                     self.__dut.prep(f"{self.interface}_rlast", [0])
                     self.__dut.prep(f"{self.interface}_rvalid", [0])
                 else:
-                    beat = 0;
+                    beat = 0
                     if int(8 * address / self.data_width) + beat_nb in self.ram:
                         beat = self.ram[int(8 * address / self.data_width) + beat_nb]
 
                     beat_nb += 1
-                    self.__dut.prep(f"{self.interface}_rdata", self.__pack(beat))
+                    self.__dut.prep(f"{self.interface}_rdata", vpw.pack(self.data_width, beat))
                     self.__dut.prep(f"{self.interface}_rid", [read_id])
                     self.__dut.prep(f"{self.interface}_rlast", [int(length == beat_nb)])
                     self.__dut.prep(f"{self.interface}_rvalid", [1])
@@ -143,7 +123,7 @@ class Memory:
                 if int(8 * address / self.data_width) + beat_nb - 1 in self.ram:
                     beat = self.ram[int(8 * address / self.data_width) + beat_nb - 1]
 
-                self.__dut.prep(f"{self.interface}_rdata", self.__pack(beat))
+                self.__dut.prep(f"{self.interface}_rdata", vpw.pack(self.data_width, beat))
                 self.__dut.prep(f"{self.interface}_rid", [read_id])
                 self.__dut.prep(f"{self.interface}_rlast", [int(length == beat_nb)])
                 self.__dut.prep(f"{self.interface}_rvalid", [1])
@@ -166,8 +146,8 @@ class Memory:
             else:
                 self.__dut.prep(f"{self.interface}_arready", [1])
 
-    def init(self, dut) -> Generator:
-        self.__dut = dut
+    def init(self, dut: ModuleType) -> Generator:
+        self.__dut: ModuleType = dut
 
         ch_w = self.__w()
         ch_aw = self.__aw()
