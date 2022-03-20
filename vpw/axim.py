@@ -2,12 +2,14 @@
 AXIM Master Interface
 """
 
-from typing import Generator
-from typing import Union
-from typing import Deque
-from typing import List
-from typing import Dict
+import vpw
+
 from typing import Any
+from typing import Deque
+from typing import Dict
+from typing import Generator
+from typing import List
+from typing import Union
 
 from math import ceil
 from collections import deque
@@ -35,14 +37,6 @@ class Master:
 
         # keep track of lengths of requested read bursts, list addressable via (A)RID
         self.pending_ar: List[Deque[int]] = [deque() for _ in range(16)]
-
-    def __pack(self, val: int) -> List[int]:
-        if self.data_width <= 64:
-            return [val]
-        else:
-            start = ceil(self.data_width / 32)
-            shift = [32*s for s in range(start)]
-            return [((val >> s) & 0xffffffff) for s in shift]
 
     def __unpack(self, val: Union[int, List[int]]) -> int:
         if isinstance(val, int):
@@ -73,7 +67,7 @@ class Master:
                 burst_nb: int = len(burst_data)
 
                 for i, data in enumerate(burst_data):
-                    self.__dut.prep(f"{self.interface}_wdata", self.__pack(data))
+                    self.__dut.prep(f"{self.interface}_wdata", vpw.pack(self.data_width, data))
                     self.__dut.prep(f"{self.interface}_wlast", [int((i+1) == burst_nb)])
                     self.__dut.prep(f"{self.interface}_wvalid", [1])
 
@@ -125,7 +119,7 @@ class Master:
             io = yield
 
             if io[f"{self.interface}_rready"] and io[f"{self.interface}_rvalid"]:
-                data = self.__unpack(io[f"{self.interface}_rdata"])
+                data = vpw.unpack(self.data_width, io[f"{self.interface}_rdata"])
                 burst_data.append(data)
 
                 if len(burst_data) == 1:

@@ -2,14 +2,13 @@
 AXI4Lite Slave Interface
 """
 
-from typing import Generator
-from typing import Callable
-from typing import Optional
-from typing import Union
-from typing import Deque
-from typing import List
+import vpw
 
-from math import ceil
+from typing import Callable
+from typing import Deque
+from typing import Generator
+from typing import Optional
+
 from collections import deque
 
 
@@ -26,39 +25,18 @@ class Master:
         self.queue_r: Deque[int] = deque()   # read data channel
         self.queue_ar: Deque[int] = deque()  # read address channel
 
-    def __pack(self, val: int) -> List[int]:
-        if self.data_width <= 64:
-            return [val]
-        else:
-            start = ceil(self.data_width/32)
-            shift = [32*s for s in range(start)]
-            return [((val >> s) & 0xffffffff) for s in shift]
-
-    def __unpack(self, val: Union[int, List[int]]) -> int:
-        if isinstance(val, int):
-            assert(self.data_width <= 64)
-            return val
-        else:
-            start = ceil(self.data_width/32)
-            shift = [32*s for s in range(start)]
-            number: int = 0
-            for v, s in zip(val, shift):
-                number = number | (v << s)
-
-            return number
-
     def __w(self) -> Generator:
 
         while True:
             if not self.queue_w:
-                self.__dut.prep(f"{self.interface}_wdata", self.__pack(0))
+                self.__dut.prep(f"{self.interface}_wdata", vpw.pack(self.data_width, 0))
                 self.__dut.prep(f"{self.interface}_wstrb", [0])
                 self.__dut.prep(f"{self.interface}_wvalid", [0])
                 io = yield
             else:
                 value: int = self.queue_w[0]
                 strb: int = (1 << int(self.data_width/8)) - 1
-                self.__dut.prep(f"{self.interface}_wdata", self.__pack(value))
+                self.__dut.prep(f"{self.interface}_wdata", vpw.pack(self.data_width, value))
                 self.__dut.prep(f"{self.interface}_wstrb", [strb])
                 self.__dut.prep(f"{self.interface}_wvalid", [1])
 
@@ -97,7 +75,8 @@ class Master:
             io = yield
 
             if io[f"{self.interface}_rready"] and io[f"{self.interface}_rvalid"]:
-                self.queue_r.append(self.__unpack(io[f"{self.interface}_rdata"]))
+                self.queue_r.append(vpw.unpack(self.data_width,
+                                               io[f"{self.interface}_rdata"]))
 
     def __ar(self) -> Generator:
 

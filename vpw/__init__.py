@@ -3,6 +3,7 @@ Verilator Python Wrapper Package
 """
 
 from typing import Optional
+from typing import Union
 from typing import List
 from typing import Dict
 from typing import Tuple
@@ -51,9 +52,10 @@ def pack(data_width: int, val: int) -> List[int]:
         return [((val >> s) & 0xffffffff) for s in shift]
 
 
-def unpack(data_width: int, val: List[int]) -> int:
-    if data_width <= 64:
-        return val[0]
+def unpack(data_width: int, val: Union[int, List[int]]) -> int:
+    if isinstance(val, int):
+        assert(data_width <= 64)
+        return val
     else:
         start = ceil(data_width / 32)
         shift = [32*s for s in range(start)]

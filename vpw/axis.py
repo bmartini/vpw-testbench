@@ -2,12 +2,12 @@
 AXIS Slave and Master Interface
 """
 
-from typing import Generator
-from typing import Union
+import vpw
+
 from typing import Deque
+from typing import Generator
 from typing import List
 
-from math import ceil
 from collections import deque
 
 
@@ -24,14 +24,6 @@ class Master:
         self.queue: List[Deque[List[int]]] = [deque() for _ in range(concat)]
         self.current: List[List[int]] = [[] for _ in range(concat)]
         self.pending: List[int] = [0] * concat
-
-    def __pack(self, val: int) -> List[int]:
-        if (self.concat * self.data_width) <= 64:
-            return [val]
-        else:
-            start = ceil(self.concat * self.data_width / 32)
-            shift = [32*s for s in range(start)]
-            return [((val >> s) & 0xffffffff) for s in shift]
 
     def send(self, data: List[int], position: int = 0) -> None:
         """ Pass in a list of data to send, one element per beat. """
@@ -67,7 +59,8 @@ class Master:
 
                     self.__valid = self.__valid | (1 << position)
 
-                    self.__dut.prep(f"{self.interface}_tdata", self.__pack(self.__data))
+                    self.__dut.prep(f"{self.interface}_tdata",
+                                    vpw.pack((self.concat * self.data_width), self.__data))
                     self.__dut.prep(f"{self.interface}_tlast", [self.__last])
                     self.__dut.prep(f"{self.interface}_tvalid", [self.__valid])
 
@@ -106,19 +99,6 @@ class Slave:
         self.current: List[List[int]] = [[] for _ in range(concat)]
         self.pending: List[int] = [0] * concat
 
-    def __unpack(self, val: Union[int, List[int]]) -> int:
-        if isinstance(val, int):
-            assert((self.concat * self.data_width) <= 64)
-            return val
-        else:
-            start = ceil(self.concat * self.data_width / 32)
-            shift = [32*s for s in range(start)]
-            number: int = 0
-            for v, s in zip(val, shift):
-                number = number | (v << s)
-
-            return number
-
     def ready(self, active: bool, position: int = 0) -> None:
         """ Turn on/off AXIS ready signal. """
         if active:
@@ -147,7 +127,8 @@ class Slave:
         while True:
             io = yield
 
-            io_data = self.__unpack(io[f"{self.interface}_tdata"])
+            io_data = vpw.unpack((self.concat * self.data_width),
+                                 io[f"{self.interface}_tdata"])
             io_last = io[f"{self.interface}_tlast"]
             io_valid = io[f"{self.interface}_tvalid"]
             io_ready = io[f"{self.interface}_tready"]
