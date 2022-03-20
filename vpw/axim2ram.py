@@ -7,6 +7,7 @@ import vpw
 from typing import Any
 from typing import Dict
 from typing import Generator
+from types import ModuleType
 
 from queue import Queue
 
@@ -145,8 +146,8 @@ class Memory:
             else:
                 self.__dut.prep(f"{self.interface}_arready", [1])
 
-    def init(self, dut) -> Generator:
-        self.__dut = dut
+    def init(self, dut: ModuleType) -> Generator:
+        self.__dut: ModuleType = dut
 
         ch_w = self.__w()
         ch_aw = self.__aw()

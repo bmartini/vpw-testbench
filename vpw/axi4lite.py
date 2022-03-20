@@ -8,6 +8,7 @@ from typing import Callable
 from typing import Deque
 from typing import Generator
 from typing import Optional
+from types import ModuleType
 
 from collections import deque
 
@@ -129,8 +130,8 @@ class Master:
             if isinstance(value, int):
                 return value
 
-    def init(self, dut) -> Generator:
-        self.__dut = dut
+    def init(self, dut: ModuleType) -> Generator:
+        self.__dut: ModuleType = dut
 
         ch_w = self.__w()
         ch_aw = self.__aw()

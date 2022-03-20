@@ -10,6 +10,7 @@ from typing import Dict
 from typing import Generator
 from typing import List
 from typing import Union
+from types import ModuleType
 
 from math import ceil
 from collections import deque
@@ -202,8 +203,8 @@ class Master:
         else:
             return self.queue_r[read_id].popleft()
 
-    def init(self, dut) -> Generator:
-        self.__dut = dut
+    def init(self, dut: ModuleType) -> Generator:
+        self.__dut: ModuleType = dut
 
         ch_w = self.__w()
         ch_aw = self.__aw()

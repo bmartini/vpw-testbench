@@ -25,7 +25,7 @@ if __name__ == '__main__':
     dut.prep("rd_en", [0])
     dut.tick()
 
-    print(f"\nSend data to be written to BRAM\n")
+    print("\nSend data to be written to BRAM\n")
     for i in range(10):
         dut.prep("wr_data", [i + 1])
         dut.prep("wr_addr", [i])
@@ -40,7 +40,7 @@ if __name__ == '__main__':
     for _ in range(10):
         dut.tick()
 
-    print(f"\nReceive data as it is read from BRAM\n")
+    print("\nReceive data as it is read from BRAM\n")
     # send read address, it is only after this 'tick' that the values are applied
     dut.prep("rd_addr", [0])
     dut.prep("rd_en", [1])

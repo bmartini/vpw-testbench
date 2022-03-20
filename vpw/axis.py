@@ -7,6 +7,7 @@ import vpw
 from typing import Deque
 from typing import Generator
 from typing import List
+from types import ModuleType
 
 from collections import deque
 
@@ -72,8 +73,8 @@ class Master:
 
                 self.queue[position].popleft()
 
-    def init(self, dut) -> Generator:
-        self.__dut = dut
+    def init(self, dut: ModuleType) -> Generator:
+        self.__dut: ModuleType = dut
         streams = []
 
         for pos in range(self.concat):
@@ -117,8 +118,8 @@ class Slave:
             self.pending[position] -= len(stream)
             return stream
 
-    def init(self, dut) -> Generator:
-        self.__dut = dut
+    def init(self, dut: ModuleType) -> Generator:
+        self.__dut: ModuleType = dut
 
         # setup
         self.__dut.prep(f"{self.interface}_tready", [0])
