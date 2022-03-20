@@ -15,4 +15,9 @@ setup(
     package_data = {
         "vpw": ["testbench.hh"],
     },
+    install_requires = [
+        "typing",
+        "parsy",
+        "pybind11"
+    ],
 )
