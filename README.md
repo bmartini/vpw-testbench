@@ -28,7 +28,7 @@ pip install git+https://github.com/bmartini/vpw-testbench.git
 Or to upgrade an already installed VPW package.
 
 ```bash
-pip install --upgrade git+https://github.com/bmartini/vpw-testbench.git
+pip install --upgrade --force-reinstall --no-deps git+https://github.com/bmartini/vpw-testbench.git
 ```
 
 Add to remove use the standard pip command.
