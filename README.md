@@ -49,7 +49,7 @@ Besides the default python install the following packages need to be installed.
 python3 -m pip install typing parsy pybind11
 ```
 
-### Verilator
+### Verilator (Version 4.218 2022-01-17 or newer)
 
 Download and install the Verilator simulator.
 
