@@ -178,9 +178,8 @@ def create(package: Optional[str] = None, module: str = 'testbench', clock: str 
             return ''
         else:
             return f'  py::list {port};\n' \
-                   f'  for (std::size_t i = 0; ' \
-                   f'i < sizeof(dut->{port})/sizeof(dut->{port}[0]); ++i) {"{"}\n' \
-                   f'    {port}.append(dut->{port}[i]);\n' \
+                   f'  for (auto &item : dut->{port}.m_storage) {"{"}\n' \
+                   f'    {port}.append(item);\n' \
                    f'  {"}"}\n\n'
 
     def generate_update_return() -> str:
