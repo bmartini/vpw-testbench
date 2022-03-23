@@ -8,6 +8,7 @@ from typing import List
 from typing import Dict
 from typing import Tuple
 from typing import Any
+from typing import TextIO
 from types import ModuleType
 
 from parsy import seq  # type: ignore
@@ -103,36 +104,15 @@ def finish():
     dut.finish()
 
 
-def create(package: Optional[str] = None, module: str = 'testbench', clock: str = 'clk',
-           include: List[str] = ['./hdl'],
-           parameter: Optional[Dict[str, Any]] = None,
-           define: Optional[Dict[str, Any]] = None) -> ModuleType:
+def parse(package: str, module: str, clock: str, header: TextIO) -> str:
+    """ Parse Verilator module header file and return testbench interface file """
 
-    package = module if package is None else package
-
-    includes: List = []
-    for dirs in include:
-        includes = includes + [f'-I{dirs}']
-
-    parameters: List = []
-    if parameter:
-        for macro, value in parameter.items():
-            parameters = parameters + [f'-pvalue+{macro}={value}']
-
-    defines: List = []
-    if define:
-        for macro, value in define.items():
-            if value is None:
-                defines = defines + [f'+define+{macro}']
-            else:
-                defines = defines + [f'+define+{macro}={value}']
-
-    def generate_intro(name: str) -> str:
-        return f'#include "V{name}.h"\n' \
+    def generate_intro(module: str) -> str:
+        return f'#include "V{module}.h"\n' \
                f'#include "verilated.h"\n' \
                f'#include "verilated_vcd_c.h"\n' \
                f'\n' \
-               f'typedef V{name} TB;\n' \
+               f'typedef V{module} TB;\n' \
                f'#include "testbench.hh"\n' \
                f'\n' \
                f'\n' \
@@ -194,10 +174,10 @@ def create(package: Optional[str] = None, module: str = 'testbench', clock: str 
     def generate_update_end() -> str:
         return "\n  );\n}\n"
 
-    def create_cpp(name: str, ports: Dict[str, str]) -> str:
+    def create_cpp(module: str, ports: Dict[str, str]) -> str:
         body = ''
 
-        body += generate_intro(name)
+        body += generate_intro(module)
 
         for port, width in ports.items():
             body += generate_prep_if(port, width)
@@ -220,7 +200,9 @@ def create(package: Optional[str] = None, module: str = 'testbench', clock: str 
         body += generate_update_end()
         return body
 
-    def parse_header(package: str, name: str, clock: str) -> Tuple[str, Dict[str, str]]:
+    def parse_header(package: str, module: str, clock: str, header: TextIO) \
+            -> Tuple[str, Dict[str, str]]:
+
         in8 = string('    VL_IN8(').map(lambda x: 'IN8')
         in16 = string('    VL_IN16(').map(lambda x: 'IN16')
         in32 = string('    VL_IN(').map(lambda x: 'IN32')
@@ -238,8 +220,7 @@ def create(package: Optional[str] = None, module: str = 'testbench', clock: str 
 
         varname = regex(r'[a-zA-Z_0-9]+').desc('variable name')
 
-        with open(f'{package}/V{name}.h', 'r') as f:
-            lines = f.readlines()
+        lines = header.readlines()
 
         portlist = {}
         for line in lines:
@@ -258,7 +239,34 @@ def create(package: Optional[str] = None, module: str = 'testbench', clock: str 
             print(f"Clock signal '{clock}' not in portlist: ",
                   portlist.keys(), file=sys.stderr)
 
-        return name, portlist
+        return module, portlist
+
+    return create_cpp(*parse_header(package, module, clock, header))
+
+
+def create(package: Optional[str] = None, module: str = 'testbench', clock: str = 'clk',
+           include: List[str] = ['./hdl'],
+           parameter: Optional[Dict[str, Any]] = None,
+           define: Optional[Dict[str, Any]] = None) -> ModuleType:
+
+    package = module if package is None else package
+
+    includes: List = []
+    for dirs in include:
+        includes = includes + [f'-I{dirs}']
+
+    parameters: List = []
+    if parameter:
+        for macro, value in parameter.items():
+            parameters = parameters + [f'-pvalue+{macro}={value}']
+
+    defines: List = []
+    if define:
+        for macro, value in define.items():
+            if value is None:
+                defines = defines + [f'+define+{macro}']
+            else:
+                defines = defines + [f'+define+{macro}={value}']
 
     def topfile(include: List[str], module: str) -> List[str]:
         filename = [f"{module}.sv"]
@@ -298,8 +306,9 @@ def create(package: Optional[str] = None, module: str = 'testbench', clock: str 
     subprocess.run(verilate_module)
 
     # create the VPW testbench interface file
-    with open(f'{package}/{module}.cc', 'w') as f:
-        f.write(create_cpp(*parse_header(package, module, clock)))
+    with open(f'{package}/V{module}.h', 'r') as header:
+        with open(f'{package}/{module}.cc', 'w') as code:
+            code.write(parse(package, module, clock, header))
 
     # compile the verilated module into object files
     subprocess.run(['make', '--no-print-directory', '-C', f'{package}', '-f', f'V{module}.mk'])
