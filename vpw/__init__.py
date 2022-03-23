@@ -104,7 +104,7 @@ def finish():
     dut.finish()
 
 
-def parse(package: str, module: str, clock: str, header: TextIO) -> str:
+def parse(module: str, clock: str, header: TextIO) -> str:
     """ Parse Verilator module header file and return testbench interface file """
 
     def generate_intro(module: str) -> str:
@@ -200,7 +200,7 @@ def parse(package: str, module: str, clock: str, header: TextIO) -> str:
         body += generate_update_end()
         return body
 
-    def parse_header(package: str, module: str, clock: str, header: TextIO) \
+    def parse_header(module: str, clock: str, header: TextIO) \
             -> Tuple[str, Dict[str, str]]:
 
         in8 = string('    VL_IN8(').map(lambda x: 'IN8')
@@ -241,7 +241,7 @@ def parse(package: str, module: str, clock: str, header: TextIO) -> str:
 
         return module, portlist
 
-    return create_cpp(*parse_header(package, module, clock, header))
+    return create_cpp(*parse_header(module, clock, header))
 
 
 def create(package: Optional[str] = None, module: str = 'testbench', clock: str = 'clk',
@@ -308,7 +308,7 @@ def create(package: Optional[str] = None, module: str = 'testbench', clock: str 
     # create the VPW testbench interface file
     with open(f'{package}/V{module}.h', 'r') as header:
         with open(f'{package}/{module}.cc', 'w') as code:
-            code.write(parse(package, module, clock, header))
+            code.write(parse(module, clock, header))
 
     # compile the verilated module into object files
     subprocess.run(['make', '--no-print-directory', '-C', f'{package}', '-f', f'V{module}.mk'])
