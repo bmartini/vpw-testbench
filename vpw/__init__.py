@@ -74,7 +74,6 @@ def register(interface):
     global dut
     gen = interface.init(dut)
     next(gen)
-
     background.append(gen)
 
 
@@ -102,6 +101,7 @@ def idle(time: int = 1):
 def finish():
     global dut
     dut.finish()
+    background.clear()
 
 
 def parse(module: str, clock: str, header: TextIO) -> str:
