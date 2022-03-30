@@ -42,7 +42,8 @@ class Master:
                 self.__last = self.__last & zero_flag
                 self.__valid = self.__valid & zero_flag
 
-                self.__dut.prep(f"{self.interface}_tdata", [self.__data])
+                self.__dut.prep(f"{self.interface}_tdata",
+                                vpw.pack((self.concat * self.data_width), self.__data))
                 self.__dut.prep(f"{self.interface}_tlast", [self.__last])
                 self.__dut.prep(f"{self.interface}_tvalid", [self.__valid])
 

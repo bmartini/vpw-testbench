@@ -58,7 +58,7 @@ class Master:
 
         while True:
             if not self.queue_w:
-                self.__dut.prep(f"{self.interface}_wdata", [0])
+                self.__dut.prep(f"{self.interface}_wdata", vpw.pack(self.data_width, 0))
                 self.__dut.prep(f"{self.interface}_wlast", [0])
                 self.__dut.prep(f"{self.interface}_wvalid", [0])
                 io = yield
