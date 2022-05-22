@@ -92,23 +92,21 @@ class Master:
 class Slave:
     def __init__(self, interface: str, data_width: int, concat: int = 1) -> None:
         assert(concat > 0)
-        self.interface = interface
-        self.data_width = data_width
-        self.concat = concat
+        self._concat = concat
 
-        self.__ready = 0
         self.queue: List[Deque[List[int]]] = [deque() for _ in range(concat)]
         self.current: List[List[int]] = [[] for _ in range(concat)]
         self.pending: List[int] = [0] * concat
 
+        # create sub-tasks
+        self._data = vpw.Slice(f"{interface}_tdata", data_width, concat)
+        self._last = vpw.Slice(f"{interface}_tlast", 1, concat)
+        self._valid = vpw.Slice(f"{interface}_tvalid", 1, concat)
+        self._ready = vpw.Slice(f"{interface}_tready", 1, concat)
+
     def ready(self, active: bool, position: int = 0) -> None:
         """ Turn on/off AXIS ready signal. """
-        if active:
-            self.__ready = self.__ready | (1 << position)
-        else:
-            self.__ready = self.__ready & ~(1 << position)
-
-        self.__dut.prep(f"{self.interface}_tready", [self.__ready])
+        self._ready[position] = int(active)
 
     def recv(self, position: int = 0) -> List[int]:
         """ Returns a list of data recived, one element per beat. """
@@ -120,31 +118,31 @@ class Slave:
             return stream
 
     def init(self, dut: ModuleType) -> Generator:
-        self.__dut: ModuleType = dut
-
         # setup
-        self.__dut.prep(f"{self.interface}_tready", [0])
-        mask = (1 << self.data_width) - 1
+        for pos in range(self._concat):
+            self._ready[pos] = 0
+
+        # init sub-tasks
+        ports = []
+        ports.append(self._data.init(dut))
+        ports.append(self._last.init(dut))
+        ports.append(self._valid.init(dut))
+        ports.append(self._ready.init(dut))
+        for port in ports:
+            next(port)
 
         while True:
             io = yield
 
-            io_data = vpw.unpack((self.concat * self.data_width),
-                                 io[f"{self.interface}_tdata"])
-            io_last = io[f"{self.interface}_tlast"]
-            io_valid = io[f"{self.interface}_tvalid"]
-            io_ready = io[f"{self.interface}_tready"]
+            # update sub-tasks
+            for port in ports:
+                port.send(io)
 
-            for pos in range(self.concat):
-                data = (io_data >> (pos * self.data_width)) & mask
-                last = (io_last >> pos) & 1
-                valid = (io_valid >> pos) & 1
-                ready = (io_ready >> pos) & 1
-
-                if valid and ready:
-                    self.current[pos].append(data)
+            for pos in range(self._concat):
+                if self._valid[pos] and self._ready[pos]:
+                    self.current[pos].append(self._data[pos])
                     self.pending[pos] += 1
 
-                    if last:
+                    if self._last[pos]:
                         self.queue[pos].append(list(self.current[pos]))
                         self.current[pos] = []
