@@ -88,7 +88,7 @@ class Master:
 
         while True:
             if not self.queue:
-                dut.prep(f"{self.interface}_tdata", [0])
+                dut.prep(f"{self.interface}_tdata", vpw.pack(self.data_width, 0))
                 dut.prep(f"{self.interface}_tlast", [0])
                 dut.prep(f"{self.interface}_tvalid", [0])
 
