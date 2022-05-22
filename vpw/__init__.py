@@ -3,6 +3,7 @@ Verilator Python Wrapper Package
 """
 
 from typing import Optional
+from typing import Generator
 from typing import Union
 from typing import List
 from typing import Dict
@@ -331,3 +332,38 @@ def create(package: Optional[str] = None, module: str = 'testbench', clock: str 
     subprocess.run(compile_package)
 
     return importlib.import_module(package)
+
+
+class Slice:
+    """VPW background task used to slice a bus."""
+
+    def __init__(self, name: str, width: int = 1, concat: int = 1) -> None:
+        """Create the slice task object."""
+        self._name = name
+        self._width = width
+        self._concat = concat
+        self._apply: int = 0
+        self._receive: int = 0
+
+    def __len__(self) -> int:
+        """Customize length operator, returns the number of slices."""
+        return self._concat
+
+    def __setitem__(self, key: int, value: int) -> None:
+        """Customize item write operator, only valid for inputs."""
+        zero_mask = ~(((1 << self._width) - 1) << (key * self._width))
+        self._apply = self._apply & zero_mask
+        self._apply = self._apply | (value << (key * self._width))
+        prep(self._name, pack(self._concat * self._width, self._apply))
+
+    def __getitem__(self, key: int) -> int:
+        """Customize item read operator."""
+        mask = (1 << self._width) - 1
+        shift = (key * self._width)
+        return (self._receive >> shift) & mask
+
+    def init(self, dut: ModuleType) -> Generator:
+        """Background task function returns a generator."""
+        while True:
+            io = yield
+            self._receive = unpack(self._concat * self._width, io[self._name])
