@@ -5,6 +5,7 @@ AXIM Master Interface
 import vpw
 
 from typing import Any
+from typing import Callable
 from typing import Deque
 from typing import Dict
 from typing import Generator
@@ -202,6 +203,78 @@ class Master:
             return []
         else:
             return self.queue_r[read_id].popleft()
+
+    def write(self, tick: Callable, address: int, data: List[int], tag: int = 0) -> None:
+        """Blocking function to send (write) an array of data over the AXIM.
+
+        Args:
+            tick: Function called to progress the clock some period of time.
+            address: Absolute address in bytes.
+            data: List of data to send with one element per beat.
+            tag: Optional burst ID used to identify a transaction.
+        """
+        # size of data array in bytes
+        size = int(self.data_width * len(data) / 8)
+
+        # queue write requests
+        burst_address = address
+        burst_size = 0
+        beat_addr = 0
+        beat_size = 0
+
+        while (burst_address + burst_size) < (address + size):
+            # calculate the start address of current burst as being the after previous burst
+            burst_address = burst_address + burst_size
+
+            # limit the burst size to 4KB or less by first calculating the number of bytes to the next
+            # 4KB boundary and comparing it to the remainder of the array to be read
+            burst_size = min(int(4096 - (burst_address % 4096)), int(address + size - burst_address))
+
+            beat_addr = beat_addr + beat_size
+            beat_size = ceil(8 * burst_size / self.data_width)
+
+            self.send_write(burst_address, data[beat_addr:beat_addr + beat_size], tag)
+
+        # wait until all write data has been sent
+        while self.queue_w:
+            tick()
+
+    def read(self, tick: Callable, address: int, size: int, tag: int = 0) -> List[int]:
+        """Blocking function to request (read) an array of data from over the AXIM.
+
+        Args:
+            tick: Function called to progress the clock some period of time.
+            address: Absolute address in bytes.
+            size: Data size in bytes.
+            tag: Optional burst ID used to identify a transaction.
+        Return:
+            List of data read from the module with one element per beat.
+        """
+        # queue read requests
+        burst_address = address
+        burst_size = 0
+
+        while (burst_address + burst_size) < (address + size):
+            # calculate the start address of current burst as being the after previous burst
+            burst_address = burst_address + burst_size
+
+            # limit the burst size to 4KB or less by first calculating the number of bytes to the next
+            # 4KB boundary and comparing it to the remainder of the array to the read
+            burst_size = min(int(4096 - (burst_address % 4096)), int(address + size - burst_address))
+
+            # limit burst length to 256 beats or less
+            burst_size = int(self.data_width * min(int(8 * burst_size / self.data_width), 256) / 8)
+
+            self.send_read(burst_address, int(8 * burst_size / self.data_width), tag)
+
+        # collect all read bursts resulting from the queued requests
+        data_target = ceil(8 * size / self.data_width)
+        data: List[int] = []
+        while len(data) < data_target:
+            tick()
+            data = data + self.recv_read(tag)
+
+        return data
 
     def init(self, dut: ModuleType) -> Generator:
         self.__dut: ModuleType = dut

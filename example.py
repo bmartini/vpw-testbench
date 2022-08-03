@@ -87,6 +87,17 @@ if __name__ == '__main__':
 
             break
 
+    vpw.idle(10)
+
+    # test AXI-MM interface with large write/read pair
+    data = [n+1 for n in range(512)]
+    axim.write(vpw.tick, 256, data, 1)
+
+    received = axim.read(vpw.tick, 256, int(len(data) * 128 / 8), 1)
+
+    for s, r in zip(data, received):
+        assert(s == r)
+
     vpw.idle(100)
 
     vpw.finish()
