@@ -182,6 +182,8 @@ if __name__ == '__main__':
         io = vpw.tick()
         if bool(io["dn_tvalid"]):
             dn_stream.ready(bool(random.getrandbits(1)))
+        elif not bool(io["dn_tready"]):
+            dn_stream.ready(bool(random.getrandbits(1)))
 
     dn_stream.ready(True)
     vpw.idle(10)

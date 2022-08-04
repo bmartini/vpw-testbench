@@ -20,12 +20,17 @@ class Master:
         self.queue: List[Deque[List[int]]] = [deque() for _ in range(concat)]
         self.current: List[List[int]] = [[] for _ in range(concat)]
         self.pending: List[int] = [0] * concat
+        self._pause: List[bool] = [False] * concat
 
         # create sub-tasks
         self._data = vpw.Slice(f"{interface}_tdata", data_width, concat)
         self._last = vpw.Slice(f"{interface}_tlast", 1, concat)
         self._valid = vpw.Slice(f"{interface}_tvalid", 1, concat)
         self._ready = vpw.Slice(f"{interface}_tready", 1, concat)
+
+    def pause(self, active: bool, position: int = 0) -> None:
+        """ Turn on/off AXIS valid signal. """
+        self._pause[position] = active
 
     def send(self, data: List[int], position: int = 0) -> None:
         """ Pass in a list of data to send, one element per beat. """
@@ -46,10 +51,11 @@ class Master:
                 for i, val in enumerate(self.current[position], start=1):
                     self._data[position] = val
                     self._last[position] = int(i == len(self.current[position]))
-                    self._valid[position] = 1
+                    self._valid[position] = int(not self._pause[position])
 
                     yield
-                    while self._ready[position] == 0:
+                    while self._valid[position] == 0 or self._ready[position] == 0:
+                        self._valid[position] = int(not self._pause[position])
                         yield
 
                     self.pending[position] -= 1

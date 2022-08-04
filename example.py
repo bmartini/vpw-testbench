@@ -56,7 +56,19 @@ if __name__ == '__main__':
 
     stream = dn_stream.recv(position=0)
     for x in stream:
-        print(f"intermittent: {x}")
+        print(f"intermittent 0: {x}")
+
+    vpw.idle(100)
+
+    print("Intermittent valid on up stream send")
+    up_stream.send([n+1 for n in range(10)], position=1)
+    while len(dn_stream.queue[1]) == 0:
+        up_stream.pause(bool(random.getrandbits(1)), 1)
+        vpw.tick()
+
+    stream = dn_stream.recv(position=1)
+    for x in stream:
+        print(f"intermittent 1: {x}")
 
     # test AXI-MM interface
     axim.send_write(0, [n+1 for n in range(128)])
