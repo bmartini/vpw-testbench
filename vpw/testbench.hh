@@ -27,7 +27,6 @@ void prep(const std::string, const std::vector<uint64_t> &);
 py::dict update();
 
 void init(const bool trace = true) {
-  printf("Initialize DUT simulation\n");
   timestamp = 0;
   trace_on = trace;
 
@@ -49,7 +48,6 @@ void finish() {
   }
 
   delete dut;
-  printf("Finish DUT simulation\n");
 }
 
 py::dict tick() {
