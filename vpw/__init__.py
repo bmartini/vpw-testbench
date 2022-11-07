@@ -245,7 +245,7 @@ def parse(module: str, clock: str, header: TextIO) -> str:
     return create_cpp(*parse_header(module, clock, header))
 
 
-def create(package: Optional[str] = None, module: str = 'testbench', clock: str = 'clk',
+def create(package: Optional[str] = None, module: str = 'testbench', clock: str = 'clk', workspace: str = '.',
            include: List[str] = ['./hdl'],
            parameter: Optional[Dict[str, Any]] = None,
            define: Optional[Dict[str, Any]] = None) -> ModuleType:
@@ -293,10 +293,10 @@ def create(package: Optional[str] = None, module: str = 'testbench', clock: str 
     output = f"{package}{output_rc.stdout.strip()}"
 
     # remove any old build files
-    subprocess.run(['rm', '-rf', f'{package}', f'{output}', f"{package}.vcd"])
+    subprocess.run(['rm', '-rf', f'{workspace}/{package}', f'{workspace}/{output}', f"{package}.vcd"])
 
     # verilate the SV module into C++
-    verilate_module = ['verilator', '-Mdir', f'{package}']
+    verilate_module = ['verilator', '-Mdir', f'{workspace}/{package}']
     verilate_module = verilate_module + ['-CFLAGS', '-fPIC -std=c++17']
     verilate_module = verilate_module + includes
     verilate_module = verilate_module + ['--trace']
@@ -307,12 +307,12 @@ def create(package: Optional[str] = None, module: str = 'testbench', clock: str 
     subprocess.run(verilate_module)
 
     # create the VPW testbench interface file
-    with open(f'{package}/V{module}.h', 'r') as header:
-        with open(f'{package}/{module}.cc', 'w') as code:
+    with open(f'{workspace}/{package}/V{module}.h', 'r') as header:
+        with open(f'{workspace}/{package}/{module}.cc', 'w') as code:
             code.write(parse(module, clock, header))
 
     # compile the verilated module into object files
-    subprocess.run(['make', '--no-print-directory', '-C', f'{package}', '-f', f'V{module}.mk'])
+    subprocess.run(['make', '--no-print-directory', '-C', f'{workspace}/{package}', '-f', f'V{module}.mk'])
 
     # compile the VPW testbench interface file and object files into a library
     compile_package = ['g++', '-O3', '-Wall']
@@ -322,15 +322,16 @@ def create(package: Optional[str] = None, module: str = 'testbench', clock: str 
     compile_package = compile_package + ['-std=c++17']
     compile_package = compile_package + ['-fPIC']
     compile_package = compile_package + pyinc
-    compile_package = compile_package + ['-I.', f'-I{vinc}', f'-I{package}']
+    compile_package = compile_package + ['-I.', f'-I{vinc}', f'-I{workspace}/{package}']
     compile_package = compile_package + [f'-I{os.path.dirname(__file__)}']
     compile_package = compile_package + [f'{vinc}/verilated.cpp']
     compile_package = compile_package + [f'{vinc}/verilated_vcd_c.cpp']
-    compile_package = compile_package + [f'{package}/{module}.cc']
-    compile_package = compile_package + [f'{package}/V{module}__ALL.a']
-    compile_package = compile_package + ['-o', f'{output}']
+    compile_package = compile_package + [f'{workspace}/{package}/{module}.cc']
+    compile_package = compile_package + [f'{workspace}/{package}/V{module}__ALL.a']
+    compile_package = compile_package + ['-o', f'{workspace}/{output}']
     subprocess.run(compile_package)
 
+    sys.path.insert(0, workspace)
     return importlib.import_module(package)
 
 
