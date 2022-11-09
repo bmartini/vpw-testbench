@@ -331,8 +331,12 @@ def create(package: Optional[str] = None, module: str = 'testbench', clock: str 
     compile_package = compile_package + ['-o', f'{workspace}/{output}']
     subprocess.run(compile_package)
 
-    sys.path.insert(0, workspace)
-    return importlib.import_module(package)
+    # targeted module load from workspace location
+    spec = importlib.util.spec_from_file_location(package, f'{workspace}/{output}')
+    dut = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(dut)
+
+    return dut
 
 
 class Slice:

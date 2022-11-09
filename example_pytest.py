@@ -17,7 +17,8 @@ import tempfile
 def design():
     workspace = tempfile.mkdtemp()
 
-    dut = vpw.create(module='example',
+    dut = vpw.create(package='example_pytest',
+                     module='example',
                      clock='clk',
                      workspace=workspace)
     yield dut
