@@ -95,8 +95,10 @@ def tick():
 def idle(time: int = 1):
     """ Idle for a number of clock cycles """
 
-    for _ in range(time):
+    for _ in range(time - 1):
         tick()
+
+    return tick()
 
 
 def finish():
