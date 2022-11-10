@@ -46,6 +46,9 @@ def prep(port: str, value: List[int]):
 
 
 def pack(data_width: int, val: int) -> List[int]:
+    mask = (1 << data_width) - 1
+    val = val & mask
+
     if data_width <= 64:
         return [val]
     else:
