@@ -289,7 +289,7 @@ def create(package: Optional[str] = None, module: str = 'testbench', clock: str 
     for line in verilator_root_rc.stdout.splitlines():
         if "VERILATOR_ROOT" in line:
             vinc = f'{line.split()[2]}/include'
-            break
+            #break  # Use the last ${VERILATOR_ROOT} instead
 
     pyinc_rc = subprocess.run(['python3', '-m', 'pybind11', '--includes'], stdout=PIPE, text=True)
     pyinc = list(pyinc_rc.stdout.strip().split(" "))
@@ -331,6 +331,7 @@ def create(package: Optional[str] = None, module: str = 'testbench', clock: str 
     compile_package = compile_package + [f'-I{os.path.dirname(__file__)}']
     compile_package = compile_package + [f'{vinc}/verilated.cpp']
     compile_package = compile_package + [f'{vinc}/verilated_vcd_c.cpp']
+    compile_package = compile_package + [f'{vinc}/verilated_threads.cpp']
     compile_package = compile_package + [f'{workspace}/{package}/{module}.cc']
     compile_package = compile_package + [f'{workspace}/{package}/V{module}__ALL.a']
     compile_package = compile_package + ['-o', f'{workspace}/{output}']
