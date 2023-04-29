@@ -30,10 +30,12 @@ class Master:
 
     def pause(self, active: bool, position: int = 0) -> None:
         """ Turn on/off AXIS valid signal. """
+        assert self._concat > position, "given concatenate position not supported"
         self._pause[position] = active
 
     def send(self, data: List[int], position: int = 0) -> None:
         """ Pass in a list of data to send, one element per beat. """
+        assert self._concat > position, "given concatenate position not supported"
         self.queue[position].append(data)
         self.pending[position] += len(data)
 
@@ -106,10 +108,12 @@ class Slave:
 
     def ready(self, active: bool, position: int = 0) -> None:
         """ Turn on/off AXIS ready signal. """
+        assert self._concat > position, "given concatenate position not supported"
         self._ready[position] = int(active)
 
     def recv(self, position: int = 0) -> List[int]:
         """ Returns a list of data recived, one element per beat. """
+        assert self._concat > position, "given concatenate position not supported"
         if not self.queue[position]:
             return []
         else:
