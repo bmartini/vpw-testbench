@@ -2,29 +2,20 @@
 Verilator Python Wrapper Package
 """
 
-from typing import Optional
-from typing import Generator
-from typing import Union
-from typing import List
-from typing import Dict
-from typing import Tuple
-from typing import Any
-from typing import TextIO
-from types import ModuleType
-
-from parsy import seq  # type: ignore
-from parsy import regex  # type: ignore
-from parsy import string  # type: ignore
-from parsy import ParseError  # type: ignore
-
+import importlib
+import os
+import re
+import subprocess
+import sys
 from math import ceil
 from subprocess import PIPE
+from types import ModuleType
+from typing import Any, Dict, Generator, List, Optional, TextIO, Tuple, Union
 
-import re
-import os
-import sys
-import importlib
-import subprocess
+from parsy import ParseError  # type: ignore
+from parsy import regex  # type: ignore
+from parsy import seq  # type: ignore
+from parsy import string  # type: ignore
 
 # Maintains persistent background tasks in the form of a list of generators
 # that get incremented every clock cycle.

@@ -2,15 +2,16 @@
 Example testbench for use with pytest
 """
 
-import vpw
-import vpw.axis
-import vpw.axim
-import vpw.axim2ram
-
-import pytest
 import random
 import shutil
 import tempfile
+
+import pytest
+
+import vpw
+import vpw.axim
+import vpw.axim2ram
+import vpw.axis
 
 
 @pytest.fixture(scope="module")

@@ -2,14 +2,11 @@
 AXIS Slave and Master Interface
 """
 
-import vpw
-
-from typing import Deque
-from typing import Generator
-from typing import List
-from types import ModuleType
-
 from collections import deque
+from types import ModuleType
+from typing import Deque, Generator, List
+
+import vpw
 
 
 class Master:

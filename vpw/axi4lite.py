@@ -2,15 +2,11 @@
 AXI4Lite Slave Interface
 """
 
-import vpw
-
-from typing import Callable
-from typing import Deque
-from typing import Generator
-from typing import Optional
-from types import ModuleType
-
 from collections import deque
+from types import ModuleType
+from typing import Callable, Deque, Generator, Optional
+
+import vpw
 
 
 class Master:

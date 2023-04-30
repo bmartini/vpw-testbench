@@ -2,14 +2,11 @@
 Simplified AXIM (software) Slave Interface driving a Memory
 """
 
-import vpw
-
-from typing import Any
-from typing import Dict
-from typing import Generator
-from types import ModuleType
-
 from queue import Queue
+from types import ModuleType
+from typing import Any, Dict, Generator
+
+import vpw
 
 
 class Memory:

@@ -3,9 +3,9 @@
 Tutorial_1c testbench
 """
 
-import vpw
-
 from typing import Generator
+
+import vpw
 
 
 class Write:

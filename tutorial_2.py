@@ -3,15 +3,12 @@
 Tutorial 2 testbench
 """
 
-import vpw
 import random
-
-from typing import Generator
-from typing import Deque
-from typing import List
-from types import ModuleType
-
 from collections import deque
+from types import ModuleType
+from typing import Deque, Generator, List
+
+import vpw
 
 
 class Checker:

@@ -2,19 +2,12 @@
 AXIM Master Interface
 """
 
-import vpw
-
-from typing import Any
-from typing import Callable
-from typing import Deque
-from typing import Dict
-from typing import Generator
-from typing import List
-from typing import Union
-from types import ModuleType
-
-from math import ceil
 from collections import deque
+from math import ceil
+from types import ModuleType
+from typing import Any, Callable, Deque, Dict, Generator, List, Union
+
+import vpw
 
 
 class Master:

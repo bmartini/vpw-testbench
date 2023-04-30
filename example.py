@@ -3,12 +3,12 @@
 Example testbench
 """
 
+import random
+
 import vpw
-import vpw.axis
 import vpw.axim
 import vpw.axim2ram
-
-import random
+import vpw.axis
 
 if __name__ == '__main__':
 
