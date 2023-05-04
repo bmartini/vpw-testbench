@@ -363,7 +363,7 @@ class Slice:
         shift = (key * self._width)
         return (self._receive >> shift) & mask
 
-    def init(self, dut: ModuleType) -> Generator:
+    def init(self, _) -> Generator:
         """Background task function returns a generator."""
         while True:
             io = yield

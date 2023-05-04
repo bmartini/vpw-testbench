@@ -33,7 +33,7 @@ class Master:
         # keep track of lengths of requested read bursts, list addressable via (A)RID
         self.pending_ar: List[Deque[int]] = [deque() for _ in range(16)]
 
-    def __unpack(self, val: Union[int, List[int]]) -> int:
+    def _unpack(self, val: Union[int, List[int]]) -> int:
         if isinstance(val, int):
             assert(self.data_width <= 64)
             return val
@@ -46,15 +46,15 @@ class Master:
 
             return number
 
-    def __w(self) -> Generator:
+    def _w(self) -> Generator:
 
-        self.__dut.prep(f"{self.interface}_wstrb", [(1 << int(self.data_width/8) - 1)])
+        self._dut.prep(f"{self.interface}_wstrb", [(1 << int(self.data_width/8) - 1)])
 
         while True:
             if not self.queue_w:
-                self.__dut.prep(f"{self.interface}_wdata", vpw.pack(self.data_width, 0))
-                self.__dut.prep(f"{self.interface}_wlast", [0])
-                self.__dut.prep(f"{self.interface}_wvalid", [0])
+                self._dut.prep(f"{self.interface}_wdata", vpw.pack(self.data_width, 0))
+                self._dut.prep(f"{self.interface}_wlast", [0])
+                self._dut.prep(f"{self.interface}_wvalid", [0])
                 io = yield
             else:
                 # access current burst of data to be sent
@@ -62,9 +62,9 @@ class Master:
                 burst_nb: int = len(burst_data)
 
                 for i, data in enumerate(burst_data):
-                    self.__dut.prep(f"{self.interface}_wdata", vpw.pack(self.data_width, data))
-                    self.__dut.prep(f"{self.interface}_wlast", [int((i+1) == burst_nb)])
-                    self.__dut.prep(f"{self.interface}_wvalid", [1])
+                    self._dut.prep(f"{self.interface}_wdata", vpw.pack(self.data_width, data))
+                    self._dut.prep(f"{self.interface}_wlast", [int((i+1) == burst_nb)])
+                    self._dut.prep(f"{self.interface}_wvalid", [1])
 
                     io = yield
                     while io[f"{self.interface}_wready"] == 0:
@@ -72,28 +72,28 @@ class Master:
 
                 self.queue_w.popleft()
 
-    def __aw(self) -> Generator:
+    def _aw(self) -> Generator:
 
-        self.__dut.prep(f"{self.interface}_awcache", [0])  # NON_CACHE_NON_BUFFER
-        self.__dut.prep(f"{self.interface}_awqos", [0])  # NOT_QOS_PARTICIPANT
-        self.__dut.prep(f"{self.interface}_awprot", [0])  # DATA_SECURE_NORMAL
-        self.__dut.prep(f"{self.interface}_awsize", [int(self.data_width / 8)])  # BYTES PER BEAT
-        self.__dut.prep(f"{self.interface}_awburst", [1])  # INCREMENTING
+        self._dut.prep(f"{self.interface}_awcache", [0])  # NON_CACHE_NON_BUFFER
+        self._dut.prep(f"{self.interface}_awqos", [0])  # NOT_QOS_PARTICIPANT
+        self._dut.prep(f"{self.interface}_awprot", [0])  # DATA_SECURE_NORMAL
+        self._dut.prep(f"{self.interface}_awsize", [int(self.data_width / 8)])  # BYTES PER BEAT
+        self._dut.prep(f"{self.interface}_awburst", [1])  # INCREMENTING
 
         while True:
             if not self.queue_aw:
-                self.__dut.prep(f"{self.interface}_awaddr", [0])
-                self.__dut.prep(f"{self.interface}_awlen", [0])
-                self.__dut.prep(f"{self.interface}_awid", [0])
-                self.__dut.prep(f"{self.interface}_awvalid", [0])
+                self._dut.prep(f"{self.interface}_awaddr", [0])
+                self._dut.prep(f"{self.interface}_awlen", [0])
+                self._dut.prep(f"{self.interface}_awid", [0])
+                self._dut.prep(f"{self.interface}_awvalid", [0])
                 io = yield
             else:
                 current_aw: Dict[str, Any] = self.queue_aw[0]
 
-                self.__dut.prep(f"{self.interface}_awaddr", [current_aw["awaddr"]])
-                self.__dut.prep(f"{self.interface}_awlen", [current_aw["awlen"]])
-                self.__dut.prep(f"{self.interface}_awid", [current_aw["awid"]])
-                self.__dut.prep(f"{self.interface}_awvalid", [1])
+                self._dut.prep(f"{self.interface}_awaddr", [current_aw["awaddr"]])
+                self._dut.prep(f"{self.interface}_awlen", [current_aw["awlen"]])
+                self._dut.prep(f"{self.interface}_awid", [current_aw["awid"]])
+                self._dut.prep(f"{self.interface}_awvalid", [1])
 
                 io = yield
                 while io[f"{self.interface}_awready"] == 0:
@@ -101,14 +101,14 @@ class Master:
 
                 self.queue_aw.popleft()
 
-    def __r(self) -> Generator:
+    def _r(self) -> Generator:
         burst_id: int = 0
 
         # store current burst of data being received
         burst_data: List[int] = []
 
         # setup
-        self.__dut.prep(f"{self.interface}_rready", [1])
+        self._dut.prep(f"{self.interface}_rready", [1])
 
         while True:
             io = yield
@@ -135,22 +135,22 @@ class Master:
                     self.pending_ar[burst_id].popleft()
                     burst_data = []
 
-    def __ar(self) -> Generator:
+    def _ar(self) -> Generator:
 
         while True:
             if not self.queue_ar:
-                self.__dut.prep(f"{self.interface}_araddr", [0])
-                self.__dut.prep(f"{self.interface}_arlen", [0])
-                self.__dut.prep(f"{self.interface}_arid", [0])
-                self.__dut.prep(f"{self.interface}_arvalid", [0])
+                self._dut.prep(f"{self.interface}_araddr", [0])
+                self._dut.prep(f"{self.interface}_arlen", [0])
+                self._dut.prep(f"{self.interface}_arid", [0])
+                self._dut.prep(f"{self.interface}_arvalid", [0])
                 io = yield
             else:
                 current_ar: Dict[str, Any] = self.queue_ar[0]
 
-                self.__dut.prep(f"{self.interface}_araddr", [current_ar["araddr"]])
-                self.__dut.prep(f"{self.interface}_arlen", [current_ar["arlen"]])
-                self.__dut.prep(f"{self.interface}_arid", [current_ar["arid"]])
-                self.__dut.prep(f"{self.interface}_arvalid", [1])
+                self._dut.prep(f"{self.interface}_araddr", [current_ar["araddr"]])
+                self._dut.prep(f"{self.interface}_arlen", [current_ar["arlen"]])
+                self._dut.prep(f"{self.interface}_arid", [current_ar["arid"]])
+                self._dut.prep(f"{self.interface}_arvalid", [1])
 
                 io = yield
                 while io[f"{self.interface}_arready"] == 0:
@@ -270,12 +270,12 @@ class Master:
         return data
 
     def init(self, dut: ModuleType) -> Generator:
-        self.__dut: ModuleType = dut
+        self._dut: ModuleType = dut
 
-        ch_w = self.__w()
-        ch_aw = self.__aw()
-        ch_r = self.__r()
-        ch_ar = self.__ar()
+        ch_w = self._w()
+        ch_aw = self._aw()
+        ch_r = self._r()
+        ch_ar = self._ar()
 
         next(ch_w)
         next(ch_aw)

@@ -21,14 +21,14 @@ class Memory:
 
         self.ram: Dict[int, int] = {}
 
-    def __w(self) -> Generator:
+    def _w(self) -> Generator:
         beat_nb = 0
         address = 0
         length = 0
         last = 0
 
         # setup
-        self.__dut.prep(f"{self.interface}_wready", [1])
+        self._dut.prep(f"{self.interface}_wready", [1])
 
         while True:
             io = yield
@@ -42,13 +42,13 @@ class Memory:
                 burst = self.queue_aw.get()
                 address = burst["awaddr"]
                 length = burst["awlen"] + 1
-                self.__dut.prep(f"{self.interface}_wready", [1])
+                self._dut.prep(f"{self.interface}_wready", [1])
 
             if beat_nb > 0 and not self.queue_w.empty():
 
                 if beat_nb > length:
                     assert(last)
-                    self.__dut.prep(f"{self.interface}_wready", [0])
+                    self._dut.prep(f"{self.interface}_wready", [0])
                     last = 0
                     beat_nb = 0
                 else:
@@ -58,10 +58,10 @@ class Memory:
                     last = beat["wlast"]
                     beat_nb += 1
 
-    def __aw(self) -> Generator:
+    def _aw(self) -> Generator:
 
         # setup
-        self.__dut.prep(f"{self.interface}_awready", [1])
+        self._dut.prep(f"{self.interface}_awready", [1])
 
         while True:
             io = yield
@@ -71,21 +71,21 @@ class Memory:
                                    "awlen": io[f"{self.interface}_awlen"]})
 
             if self.queue_aw.full():
-                self.__dut.prep(f"{self.interface}_awready", [0])
+                self._dut.prep(f"{self.interface}_awready", [0])
             else:
-                self.__dut.prep(f"{self.interface}_awready", [1])
+                self._dut.prep(f"{self.interface}_awready", [1])
 
-    def __r(self) -> Generator:
+    def _r(self) -> Generator:
         beat_nb = 0
         address = 0
         length = 0
         read_id = 0
 
         # setup
-        self.__dut.prep(f"{self.interface}_rdata", vpw.pack(self.data_width, 0))
-        self.__dut.prep(f"{self.interface}_rid", [0])
-        self.__dut.prep(f"{self.interface}_rlast", [0])
-        self.__dut.prep(f"{self.interface}_rvalid", [0])
+        self._dut.prep(f"{self.interface}_rdata", vpw.pack(self.data_width, 0))
+        self._dut.prep(f"{self.interface}_rid", [0])
+        self._dut.prep(f"{self.interface}_rlast", [0])
+        self._dut.prep(f"{self.interface}_rvalid", [0])
 
         while True:
             io = yield
@@ -94,20 +94,20 @@ class Memory:
 
                 if beat_nb == length:
                     beat_nb = 0
-                    self.__dut.prep(f"{self.interface}_rdata", vpw.pack(self.data_width, 0))
-                    self.__dut.prep(f"{self.interface}_rid", [0])
-                    self.__dut.prep(f"{self.interface}_rlast", [0])
-                    self.__dut.prep(f"{self.interface}_rvalid", [0])
+                    self._dut.prep(f"{self.interface}_rdata", vpw.pack(self.data_width, 0))
+                    self._dut.prep(f"{self.interface}_rid", [0])
+                    self._dut.prep(f"{self.interface}_rlast", [0])
+                    self._dut.prep(f"{self.interface}_rvalid", [0])
                 else:
                     beat = 0
                     if int(8 * address / self.data_width) + beat_nb in self.ram:
                         beat = self.ram[int(8 * address / self.data_width) + beat_nb]
 
                     beat_nb += 1
-                    self.__dut.prep(f"{self.interface}_rdata", vpw.pack(self.data_width, beat))
-                    self.__dut.prep(f"{self.interface}_rid", [read_id])
-                    self.__dut.prep(f"{self.interface}_rlast", [int(length == beat_nb)])
-                    self.__dut.prep(f"{self.interface}_rvalid", [1])
+                    self._dut.prep(f"{self.interface}_rdata", vpw.pack(self.data_width, beat))
+                    self._dut.prep(f"{self.interface}_rid", [read_id])
+                    self._dut.prep(f"{self.interface}_rlast", [int(length == beat_nb)])
+                    self._dut.prep(f"{self.interface}_rvalid", [1])
 
             if beat_nb == 0 and not self.queue_ar.empty():
                 beat_nb = 1
@@ -120,15 +120,15 @@ class Memory:
                 if int(8 * address / self.data_width) + beat_nb - 1 in self.ram:
                     beat = self.ram[int(8 * address / self.data_width) + beat_nb - 1]
 
-                self.__dut.prep(f"{self.interface}_rdata", vpw.pack(self.data_width, beat))
-                self.__dut.prep(f"{self.interface}_rid", [read_id])
-                self.__dut.prep(f"{self.interface}_rlast", [int(length == beat_nb)])
-                self.__dut.prep(f"{self.interface}_rvalid", [1])
+                self._dut.prep(f"{self.interface}_rdata", vpw.pack(self.data_width, beat))
+                self._dut.prep(f"{self.interface}_rid", [read_id])
+                self._dut.prep(f"{self.interface}_rlast", [int(length == beat_nb)])
+                self._dut.prep(f"{self.interface}_rvalid", [1])
 
-    def __ar(self) -> Generator:
+    def _ar(self) -> Generator:
 
         # setup
-        self.__dut.prep(f"{self.interface}_arready", [1])
+        self._dut.prep(f"{self.interface}_arready", [1])
 
         while True:
             io = yield
@@ -139,17 +139,17 @@ class Memory:
                                    "arid": io[f"{self.interface}_arid"]})
 
             if self.queue_ar.full():
-                self.__dut.prep(f"{self.interface}_arready", [0])
+                self._dut.prep(f"{self.interface}_arready", [0])
             else:
-                self.__dut.prep(f"{self.interface}_arready", [1])
+                self._dut.prep(f"{self.interface}_arready", [1])
 
     def init(self, dut: ModuleType) -> Generator:
-        self.__dut: ModuleType = dut
+        self._dut: ModuleType = dut
 
-        ch_w = self.__w()
-        ch_aw = self.__aw()
-        ch_r = self.__r()
-        ch_ar = self.__ar()
+        ch_w = self._w()
+        ch_aw = self._aw()
+        ch_r = self._r()
+        ch_ar = self._ar()
 
         next(ch_w)
         next(ch_aw)
