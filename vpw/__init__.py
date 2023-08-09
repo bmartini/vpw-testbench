@@ -322,6 +322,7 @@ def create(package: Optional[str] = None, module: str = 'testbench', clock: str 
     compile_package = compile_package + [f'-I{os.path.dirname(__file__)}']
     compile_package = compile_package + [f'{vinc}/verilated.cpp']
     compile_package = compile_package + [f'{vinc}/verilated_vcd_c.cpp']
+    compile_package = compile_package + [f'{vinc}/verilated_threads.cpp']
     compile_package = compile_package + [f'{workspace}/{package}/{module}.cc']
     compile_package = compile_package + [f'{workspace}/{package}/V{module}__ALL.a']
     compile_package = compile_package + ['-o', f'{workspace}/{output}']
